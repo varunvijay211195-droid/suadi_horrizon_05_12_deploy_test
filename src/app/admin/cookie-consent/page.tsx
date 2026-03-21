@@ -48,10 +48,20 @@ export default function AdminCookieConsentPage() {
         loadData();
     }, []);
 
+    const getHeaders = () => {
+        const token = localStorage.getItem('accessToken');
+        return {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+    };
+
     const loadData = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/cookie-consent');
+            const response = await fetch('/api/cookie-consent', {
+                headers: getHeaders()
+            });
             if (response.ok) {
                 const data = await response.json();
                 if (data.settings) {
@@ -77,7 +87,7 @@ export default function AdminCookieConsentPage() {
         try {
             const response = await fetch('/api/cookie-consent', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getHeaders(),
                 body: JSON.stringify(settings),
             });
 
@@ -98,7 +108,9 @@ export default function AdminCookieConsentPage() {
     const handleExport = async () => {
         setExporting(true);
         try {
-            const response = await fetch('/api/cookie-consent/export');
+            const response = await fetch('/api/cookie-consent/export', {
+                headers: getHeaders()
+            });
             if (response.ok) {
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
@@ -127,7 +139,10 @@ export default function AdminCookieConsentPage() {
         }
         setResetting(true);
         try {
-            const response = await fetch('/api/cookie-consent', { method: 'DELETE' });
+            const response = await fetch('/api/cookie-consent', {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
             if (response.ok) {
                 toast.success('All consent records have been purged');
                 loadData();
@@ -236,14 +251,14 @@ export default function AdminCookieConsentPage() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => setSettings({ ...settings, [cat.key]: !(settings as any)[cat.key] })}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(settings as any)[cat.key]
-                                                ? 'bg-gold'
-                                                : 'bg-white/10'
+                                        onClick={() => setSettings({ ...settings, [cat.key]: !((settings as any)[cat.key]) })}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${((settings as any)[cat.key])
+                                            ? 'bg-gold'
+                                            : 'bg-white/10'
                                             }`}
                                     >
                                         <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(settings as any)[cat.key] ? 'translate-x-6' : 'translate-x-1'
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${((settings as any)[cat.key]) ? 'translate-x-6' : 'translate-x-1'
                                                 }`}
                                         />
                                     </button>

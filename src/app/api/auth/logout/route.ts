@@ -1,36 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
-import { requireAuth } from '@/lib/auth/middleware';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
+        const authHeader = request.headers.get('Authorization');
 
-        // Verify authentication
-        const userPayload = await requireAuth(request);
-
-        // Find user and clear refresh token
-        const user = await User.findById(userPayload.sub);
-
-        if (user) {
-            user.refreshToken = null;
-            await user.save();
-        }
-
-        return NextResponse.json({
-            message: 'User logged out successfully',
-        });
-    } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Logout failed';
-
-        if (errorMessage === 'Unauthorized') {
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return NextResponse.json(
                 { message: 'Not authenticated' },
                 { status: 401 }
             );
         }
 
+        const token = authHeader.replace('Bearer ', '');
+
+        // Create Supabase client with anon key
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+            global: {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        });
+
+        // Sign out from Supabase
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+            console.error('Supabase logout error:', error);
+            return NextResponse.json(
+                { message: 'Logout failed' },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json({
+            message: 'User logged out successfully',
+        });
+    } catch (error: unknown) {
         console.error('Logout error:', error);
         return NextResponse.json(
             { message: 'Logout failed' },

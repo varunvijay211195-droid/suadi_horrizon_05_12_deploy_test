@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        return new Promise((resolve) => {
+        return new Promise<NextResponse>((resolve) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     folder: process.env.CLOUDINARY_FOLDER || 'saudi-horizon',
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
 
             uploadStream.end(buffer);
         });
+
 
     } catch (error) {
         console.error('Error in upload route:', error);

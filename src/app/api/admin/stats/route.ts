@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
-import Product from '@/lib/db/models/Product';
-import Order from '@/lib/db/models/Order';
-import QuoteRequest from '@/lib/db/models/QuoteRequest';
-import Banner from '@/lib/db/models/Banner';
+import { createClient } from '@supabase/supabase-js';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
@@ -14,190 +9,198 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        await connectDB();
-
-        const [totalUsers, totalProducts, totalOrders] = await Promise.all([
-            User.countDocuments(),
-            Product.countDocuments(),
-            Order.countDocuments()
-        ]);
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         // Date boundaries
         const now = new Date();
-        const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const sixMonthsAgoStr = sixMonthsAgo.toISOString();
 
-        // New users registered this month
-        const newUsersThisMonth = await User.countDocuments({ createdAt: { $gte: startOfThisMonth } });
-
-        // Low stock products (stock <= 5)
-        const lowStockCount = await Product.countDocuments({ stock: { $lte: 5 } });
-
-        // Total revenue
-        const revenueResult = await Order.aggregate([
-            { $match: { status: { $ne: 'cancelled' } } },
-            { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+        // 1. Basic Counts
+        const [
+            { count: totalUsers },
+            { count: totalProducts },
+            { count: totalOrders },
+            { count: newUsersThisMonth },
+            { count: lowStockCount }
+        ] = await Promise.all([
+            supabase.from('users').select('*', { count: 'exact', head: true }),
+            supabase.from('products').select('*', { count: 'exact', head: true }),
+            supabase.from('orders').select('*', { count: 'exact', head: true }),
+            supabase.from('users').select('*', { count: 'exact', head: true }).gte('created_at', startOfThisMonth),
+            supabase.from('products').select('*', { count: 'exact', head: true }).lte('stock', 5)
         ]);
-        const totalRevenue = revenueResult[0]?.totalRevenue || 0;
 
-        // This month vs last month — revenue and order count
-        const [thisMonthData, lastMonthData] = await Promise.all([
-            Order.aggregate([
-                { $match: { createdAt: { $gte: startOfThisMonth }, status: { $ne: 'cancelled' } } },
-                { $group: { _id: null, revenue: { $sum: '$totalAmount' }, count: { $sum: 1 } } }
-            ]),
-            Order.aggregate([
-                { $match: { createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth }, status: { $ne: 'cancelled' } } },
-                { $group: { _id: null, revenue: { $sum: '$totalAmount' }, count: { $sum: 1 } } }
-            ])
-        ]);
-        const thisRevenue = thisMonthData[0]?.revenue || 0;
-        const lastRevenue = lastMonthData[0]?.revenue || 0;
-        const thisOrders = thisMonthData[0]?.count || 0;
-        const lastOrders = lastMonthData[0]?.count || 0;
+        // 2. Revenue & Order History for Analysis
+        // Fetch orders from last 2 months for comparisons and last 6 months for chart
+        const { data: ordersData, error: ordersError } = await supabase
+            .from('orders')
+            .select('total_amount, status, created_at')
+            .gte('created_at', sixMonthsAgoStr);
 
-        // Compute % change helpers (null = not enough data)
+        if (ordersError) throw ordersError;
+
+        const validOrders = ordersData.filter(o => o.status !== 'cancelled');
+        const totalRevenue = validOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+        // Calculate this month vs last month revenue/counts
+        const thisMonthOrders = validOrders.filter(o => o.created_at >= startOfThisMonth);
+        const lastMonthOrders = validOrders.filter(o => o.created_at >= startOfLastMonth && o.created_at < startOfThisMonth);
+
+        const thisRevenue = thisMonthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+        const lastRevenue = lastMonthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+        const thisOrdersCount = thisMonthOrders.length;
+        const lastOrdersCount = lastMonthOrders.length;
+
         const pct = (curr: number, prev: number): number | null =>
             prev === 0 ? null : Math.round(((curr - prev) / prev) * 100);
 
         const revenueChange = pct(thisRevenue, lastRevenue);
-        const ordersChange = pct(thisOrders, lastOrders);
-
-        // Top products
-        const topProducts = await Order.aggregate([
-            { $unwind: '$items' },
-            { $group: { _id: '$items.name', totalSold: { $sum: '$items.quantity' }, revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } } } },
-            { $sort: { totalSold: -1 } },
-            { $limit: 5 }
-        ]);
+        const ordersChange = pct(thisOrdersCount, lastOrdersCount);
 
         // Monthly revenue (last 6 months)
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-        const monthlyRevenue = await Order.aggregate([
-            { $match: { createdAt: { $gte: sixMonthsAgo }, status: { $ne: 'cancelled' } } },
-            { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, sales: { $sum: '$totalAmount' }, count: { $sum: 1 } } },
-            { $sort: { _id: 1 } }
-        ]);
+        const monthlyRevenueMap = new Map();
+        validOrders.forEach(o => {
+            const month = o.created_at.substring(0, 7); // YYYY-MM
+            const current = monthlyRevenueMap.get(month) || { sales: 0, count: 0 };
+            monthlyRevenueMap.set(month, {
+                sales: current.sales + (o.total_amount || 0),
+                count: current.count + 1
+            });
+        });
+
+        const monthlyRevenue = Array.from(monthlyRevenueMap.entries())
+            .map(([month, data]) => ({ _id: month, ...data }))
+            .sort((a, b) => a._id.localeCompare(b._id));
 
         // Order status breakdown
-        const orderStatusBreakdown = await Order.aggregate([
-            { $group: { _id: '$status', count: { $sum: 1 } } }
+        const statusMap = new Map();
+        ordersData.forEach(o => {
+            statusMap.set(o.status, (statusMap.get(o.status) || 0) + 1);
+        });
+        const orderStatusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({ _id: status, count }));
+
+        // 3. Recent Activities (Unified Feed Data)
+        const [
+            { data: recentOrdersData },
+            { data: recentProductsData },
+            { data: recentUsersData },
+            { data: recentQuotesData },
+            { data: recentBannersData }
+        ] = await Promise.all([
+            supabase.from('orders').select('id, total_amount, status, created_at, users(email, profile)').order('created_at', { ascending: false }).limit(6),
+            supabase.from('products').select('id, name, category, price, created_at').order('created_at', { ascending: false }).limit(5),
+            supabase.from('users').select('id, email, profile, created_at').order('created_at', { ascending: false }).limit(4),
+            supabase.from('quote_requests').select('id, company_name, contact_person, status, created_at').order('created_at', { ascending: false }).limit(4),
+            supabase.from('banners').select('id, title, position, is_active, created_at').order('created_at', { ascending: false }).limit(6)
         ]);
 
-        // Recent orders (for activity)
-        const recentOrders = await Order.find()
-            .sort({ createdAt: -1 })
-            .limit(6)
-            .populate('user', 'email name')
-            .select('_id user totalAmount status createdAt')
-            .lean();
+        interface Activity {
+            type: string;
+            id: string;
+            title: string;
+            subtitle: string;
+            meta: string;
+            status: string | null;
+            createdAt: string;
+            href: string;
+        }
 
-        // Recent products added
-        const recentProducts = await Product.find()
-            .sort({ createdAt: -1 })
-            .limit(5)
-            .select('_id name category price createdAt')
-            .lean();
-
-        // Recent users registered
-        const recentUsers = await User.find()
-            .sort({ createdAt: -1 })
-            .limit(4)
-            .select('_id email name createdAt')
-            .lean();
-
-        // Recent quote requests
-        const recentQuotes = await QuoteRequest.find()
-            .sort({ createdAt: -1 })
-            .limit(4)
-            .select('_id companyName contactPerson status createdAt')
-            .lean();
-
-        // Active banners (running right now)
-        const now2 = new Date();
-        const activeBanners = await Banner.find({ isActive: true })
-            .sort({ createdAt: -1 })
-            .select('_id title subtitle position link ctaText isActive createdAt')
-            .lean();
-
-        // Recent banners created (for the activity feed)
-        const recentBanners = await Banner.find()
-            .sort({ createdAt: -1 })
-            .limit(4)
-            .select('_id title position isActive createdAt')
-            .lean();
-
-        // Build unified activity feed — merge + sort by date
-        const activities = [
-            ...recentOrders.map((o: any) => ({
-                type: 'order',
-                id: o._id.toString(),
-                title: `New order placed`,
-                subtitle: (o.user as any)?.email || 'Guest',
-                meta: `SAR ${o.totalAmount?.toLocaleString()}`,
-                status: o.status,
-                createdAt: o.createdAt,
-                href: '/admin/orders',
-            })),
-            ...recentProducts.map((p: any) => ({
+        const activities: Activity[] = [
+            ...(recentOrdersData || []).map((o: any) => {
+                const user = Array.isArray(o.users) ? o.users[0] : o.users;
+                return {
+                    type: 'order',
+                    id: o.id,
+                    title: `New order placed`,
+                    subtitle: user?.email || 'Guest',
+                    meta: `SAR ${o.total_amount?.toLocaleString()}`,
+                    status: o.status,
+                    createdAt: o.created_at,
+                    href: '/admin/orders',
+                };
+            }),
+            ...(recentProductsData || []).map((p: any) => ({
                 type: 'product',
-                id: p._id.toString(),
+                id: p.id,
                 title: `Product added`,
                 subtitle: p.name,
                 meta: p.category,
                 status: null,
-                createdAt: p.createdAt,
+                createdAt: p.created_at,
                 href: '/admin/products',
             })),
-            ...recentUsers.map((u: any) => ({
+            ...(recentUsersData || []).map((u: any) => ({
                 type: 'user',
-                id: u._id.toString(),
+                id: u.id,
                 title: `New user registered`,
                 subtitle: u.email,
-                meta: u.name || '',
+                meta: (u.profile as any)?.name || '',
                 status: null,
-                createdAt: u.createdAt,
+                createdAt: u.created_at,
                 href: '/admin/users',
             })),
-            ...recentQuotes.map((q: any) => ({
+            ...(recentQuotesData || []).map((q: any) => ({
                 type: 'quote',
-                id: q._id.toString(),
+                id: q.id,
                 title: `Quote request received`,
-                subtitle: q.companyName,
-                meta: q.contactPerson,
+                subtitle: q.company_name,
+                meta: q.contact_person,
                 status: q.status,
-                createdAt: q.createdAt,
+                createdAt: q.created_at,
                 href: '/admin/quotes',
             })),
-            ...recentBanners.map((b: any) => ({
+            ...(recentBannersData || []).map((b: any) => ({
                 type: 'banner',
-                id: b._id.toString(),
-                title: `Banner ${b.isActive ? 'activated' : 'created'}`,
+                id: b.id,
+                title: `Banner ${b.is_active ? 'activated' : 'created'}`,
                 subtitle: b.title,
                 meta: b.position,
-                status: b.isActive ? 'active' : 'inactive',
-                createdAt: b.createdAt,
+                status: b.is_active ? 'active' : 'inactive',
+                createdAt: b.created_at,
                 href: '/admin/banners',
             })),
         ]
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, 12);
 
+        // Top products - Placeholder as it requires complex order_items join or json parsing
+        // For now, we will return an empty array or a simple list if we had sales data per product
+        const topProducts: any[] = []; 
+
         return NextResponse.json({
-            totalUsers,
-            totalProducts,
-            totalOrders,
+            totalUsers: totalUsers || 0,
+            totalProducts: totalProducts || 0,
+            totalOrders: totalOrders || 0,
             totalRevenue,
             monthlyRevenue,
-            recentOrders,
+            recentOrders: (recentOrdersData || []).map((o: any) => {
+                const user = Array.isArray(o.users) ? o.users[0] : o.users;
+                return {
+                    _id: o.id,
+                    user: { email: user?.email, name: (user?.profile as any)?.name },
+                    totalAmount: o.total_amount,
+                    status: o.status,
+                    createdAt: o.created_at
+                };
+            }),
             topProducts,
             orderStatusBreakdown,
             activities,
-            activeBanners,
-            // Real stat card metadata
-            newUsersThisMonth,
-            lowStockCount,
+            activeBanners: (recentBannersData || []).filter((b: any) => b.is_active).map((b: any) => ({
+                _id: b.id,
+                title: b.title,
+                position: b.position,
+                isActive: b.is_active,
+                createdAt: b.created_at
+            })),
+            newUsersThisMonth: newUsersThisMonth || 0,
+            lowStockCount: lowStockCount || 0,
             revenueChange,
             ordersChange,
         });

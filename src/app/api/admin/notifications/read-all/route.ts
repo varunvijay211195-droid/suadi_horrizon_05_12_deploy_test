@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Notification from '@/lib/db/models/Notification';
+import { createClient } from '@supabase/supabase-js';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // PATCH /api/admin/notifications/read-all - Mark all notifications as read
@@ -15,18 +14,21 @@ export async function PATCH(request: NextRequest) {
     }
 
     try {
-        await connectDB();
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-        const result = await Notification.updateMany(
-            { isRead: false },
-            { isRead: true }
-        );
+        const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('is_read', false);
+
+        if (error) throw error;
 
         return NextResponse.json({
-            message: 'All notifications marked as read',
-            count: result.modifiedCount
+            message: 'All notifications marked as read'
         });
-    } catch (error: unknown) {
+    } catch (error: any) {
         console.error('Error marking all notifications as read:', error);
         return NextResponse.json(
             { error: 'Failed to mark all notifications as read' },

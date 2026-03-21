@@ -1,53 +1,141 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Brand from '@/lib/db/models/Brand';
+import { createClient } from '@/lib/supabase/server';
+
+interface BrandMetadata {
+    [key: string]: unknown;
+}
+
+export interface Brand {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    logo: string | null;
+    website: string | null;
+    is_featured: boolean;
+    is_active: boolean;
+    metadata: BrandMetadata;
+    created_at: string;
+    updated_at: string;
+}
+
+/**
+ * Normalize a brand from the Supabase response.
+ * Convert snake_case to camelCase for frontend compatibility.
+ */
+function normalizeBrand(b: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    logo: string | null;
+    website: string | null;
+    is_featured: boolean;
+    is_active: boolean;
+    metadata: BrandMetadata;
+    created_at: string;
+    updated_at: string;
+}): Brand {
+    return {
+        id: b.id,
+        name: b.name,
+        slug: b.slug,
+        description: b.description,
+        logo: b.logo,
+        website: b.website,
+        is_featured: b.is_featured,
+        is_active: b.is_active,
+        metadata: b.metadata,
+        created_at: b.created_at,
+        updated_at: b.updated_at
+    };
+}
 
 export async function GET(request: NextRequest) {
+    const supabase = createClient();
+
+    // Parse query parameters
+    const { searchParams } = new URL(request.url);
+    const isActive = searchParams.get('isActive');
+    const isFeatured = searchParams.get('isFeatured');
+
     try {
-        await connectDB();
+        let query = supabase
+            .from('brands')
+            .select('*');
 
-        const { searchParams } = new URL(request.url);
-        const isActive = searchParams.get('isActive');
-        const isFeatured = searchParams.get('isFeatured');
+        // Apply filters
+        if (isActive !== null) {
+            query = query.eq('is_active', isActive === 'true');
+        }
+        if (isFeatured !== null) {
+            query = query.eq('is_featured', isFeatured === 'true');
+        }
 
-        const query: any = {};
-        if (isActive !== null) query.isActive = isActive === 'true';
-        if (isFeatured !== null) query.isFeatured = isFeatured === 'true';
+        // Sort by name ascending
+        query = query.order('name', { ascending: true });
 
-        const brands = await Brand.find(query).sort({ name: 1 });
+        const { data, error } = await query;
 
-        // Explicitly include _id in the response
-        const formattedBrands = brands.map(b => ({
-            _id: b._id,
-            name: b.name,
-            slug: b.slug,
-            logo: b.logo,
-            description: b.description,
-            isFeatured: b.isFeatured,
-            isActive: b.isActive
+        if (error) {
+            console.error('Supabase error:', error);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        const brands = (data || []).map(normalizeBrand).map(b => ({
+            _id: b.id,
+            ...b,
+            isFeatured: b.is_featured,
+            isActive: b.is_active
         }));
 
-        return NextResponse.json({ brands: formattedBrands });
-    } catch (error: any) {
-        console.error('Error fetching brands:', error);
-        return NextResponse.json({ error: 'Failed to fetch brands', details: error.message }, { status: 500 });
+        return NextResponse.json({ brands });
+    } catch (error) {
+        console.error('[GET /api/brands] Error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
 export async function POST(request: NextRequest) {
+    const supabase = createClient();
+
     try {
-        await connectDB();
         const body = await request.json();
 
-        // Ensure _id is provided or generated from slug
-        if (!body._id && body.slug) {
-            body._id = body.slug;
-        }
+        // Ensure id is provided or generated from slug
+        const brandData = {
+            id: body.id || body._id || body.slug,
+            name: body.name,
+            slug: body.slug,
+            description: body.description,
+            logo: body.logo,
+            website: body.website,
+            is_featured: body.isFeatured !== undefined ? body.isFeatured : false,
+            is_active: body.isActive !== undefined ? body.isActive : true,
+            metadata: body.metadata || {}
+        };
 
-        const brand = await Brand.create(body);
-        return NextResponse.json(brand, { status: 201 });
-    } catch (error: any) {
-        console.error('Error creating brand:', error);
-        return NextResponse.json({ error: 'Failed' }, { status: 500 });
+        const { data, error } = await supabase
+            .from('brands')
+            .insert(brandData)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase insert error:', error);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        
+        const normalized = normalizeBrand(data);
+
+        return NextResponse.json({
+            _id: normalized.id,
+            ...normalized,
+            isFeatured: normalized.is_featured,
+            isActive: normalized.is_active
+        }, { status: 201 });
+    } catch (error) {
+        console.error('[POST /api/brands] Error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

@@ -14,7 +14,7 @@ export default function ComparisonBar({ products, onCompare }: ComparisonBarProp
     const { comparisonProducts, removeProduct, clearAll, count } = useComparison();
 
     // Get the actual product objects for selected IDs
-    const selectedProducts = products.filter(p => comparisonProducts.includes(p._id));
+    const selectedProducts = products.filter(p => comparisonProducts.includes(p.id));
 
     if (count === 0) return null;
 
@@ -45,14 +45,14 @@ export default function ComparisonBar({ products, onCompare }: ComparisonBarProp
                             <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                                 {selectedProducts.map((product) => (
                                     <div
-                                        key={product._id}
+                                        key={product.id}
                                         className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white/10 border border-white/20 rounded-lg group hover:bg-white/15 transition-colors"
                                     >
                                         <div className="text-sm text-white truncate max-w-[150px]">
                                             {product.name}
                                         </div>
                                         <button
-                                            onClick={() => removeProduct(product._id)}
+                                            onClick={() => removeProduct(product.id)}
                                             className="text-white/50 hover:text-white transition-colors"
                                             aria-label={`Remove ${product.name}`}
                                         >

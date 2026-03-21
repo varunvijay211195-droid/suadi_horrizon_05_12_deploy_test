@@ -30,15 +30,21 @@ export async function GET(request: NextRequest) {
         // If successful, check if it's an invoice payment and update status
         if (isSuccess && data.merchantTransactionId?.startsWith('INV-')) {
             const invoiceId = data.merchantTransactionId.replace('INV-', '');
-            const { default: Invoice } = await import('@/lib/db/models/Invoice');
-            const { default: connectDB } = await import('@/lib/db/mongodb');
+            const { createClient } = await import('@/lib/supabase/server');
+            const supabase = createClient();
 
-            await connectDB();
-            await Invoice.findByIdAndUpdate(invoiceId, {
-                status: 'paid',
-                paidAt: new Date(),
-                notes: `Paid via HyperPay. Payment ID: ${data.id}`
-            });
+            const { error } = await supabase
+                .from('invoices')
+                .update({
+                    status: 'paid',
+                    paid_at: new Date().toISOString(),
+                    notes: `Paid via HyperPay. Payment ID: ${data.id}`
+                })
+                .eq('id', invoiceId);
+
+            if (error) {
+                console.error('Failed to update invoice status:', error);
+            }
             console.log(`Invoice ${invoiceId} marked as paid.`);
         }
 

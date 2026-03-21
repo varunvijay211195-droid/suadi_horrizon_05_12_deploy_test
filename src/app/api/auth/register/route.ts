@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
-import { generateAccessToken, generateRefreshToken } from '@/lib/auth/jwt';
+import { createClient } from '@supabase/supabase-js';
 import { sendWelcomeEmail } from '@/lib/notifications/userNotifications';
 import { notifyNewUser } from '@/lib/notifications/adminNotifications';
 
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
         const { name, email, password, phone } = await request.json();
 
         if (!name || !email || !password) {
@@ -17,51 +14,80 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email: email.toLowerCase() });
-        if (existingUser) {
+        // Create Supabase client with anon key
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        // Register user with Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    name,
+                    phone: phone || '',
+                }
+            }
+        });
+
+        if (authError) {
+            console.error('Supabase registration error:', authError);
+            
+            // Check if user already exists
+            if (authError.message.includes('already registered') || authError.code === 'user_already_exists') {
+                return NextResponse.json(
+                    { message: 'User with this email already exists' },
+                    { status: 409 }
+                );
+            }
+            
             return NextResponse.json(
-                { message: 'User with this email already exists' },
-                { status: 409 }
+                { message: authError.message || 'Registration failed' },
+                { status: 500 }
             );
         }
 
-        // Create new user
-        const newUser = await User.create({
-            email: email.toLowerCase(),
-            password, // Mongoose pre-save hook will hash this
-            profile: {
-                name,
-                phone: phone || '',
-            },
-            role: 'user',
-        });
+        // Create user record in users table (if it exists)
+        if (authData.user) {
+            try {
+                await supabase
+                    .from('users')
+                    .upsert({
+                        id: authData.user.id,
+                        email: authData.user.email,
+                        name: name,
+                        phone: phone || '',
+                        role: 'customer',
+                        created_at: new Date().toISOString(),
+                    });
+            } catch {
+                // Ignore if table doesn't exist
+            }
+        }
 
-        // Generate tokens
-        const accessToken = generateAccessToken(newUser);
-        const refreshToken = generateRefreshToken(newUser);
-
-        // Save refresh token
-        newUser.refreshToken = refreshToken;
-        await newUser.save();
-
-        // --- Notifications ---
-
-        // 1. Send Welcome Email to User (Non-blocking)
+        // --- Notifications (Non-blocking) ---
+        
+        // 1. Send Welcome Email to User
         sendWelcomeEmail(email, name).catch(err => console.error('Welcome email failed:', err));
 
-        // 2. Notify Admin about new registration (Non-blocking)
+        // 2. Notify Admin about new registration
         notifyNewUser(name, email).catch(err => console.error('Admin notification failed:', err));
+
+        // Get session tokens
+        const accessToken = authData.session?.access_token;
+        const refreshToken = authData.session?.refresh_token;
 
         return NextResponse.json({
             token: accessToken,
             accessToken,
             refreshToken,
             user: {
-                id: newUser._id,
-                email: newUser.email,
-                name: newUser.profile?.name || name,
-                role: newUser.role,
+                id: authData.user?.id,
+                email: authData.user?.email,
+                name: name,
+                role: 'customer',
             }
         }, { status: 201 });
 

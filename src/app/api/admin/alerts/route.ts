@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Product from '@/lib/db/models/Product';
-import Order from '@/lib/db/models/Order';
-import User from '@/lib/db/models/User';
+import { createClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET /api/admin/alerts - Get all alert counts
@@ -17,16 +14,34 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        await connectDB();
+        const supabase = createClient();
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const [lowStockCount, pendingOrders, newUsersToday] = await Promise.all([
-            Product.countDocuments({ stock: { $lt: 10 } }),
-            Order.countDocuments({ status: 'pending' }),
-            User.countDocuments({ createdAt: { $gte: today } })
+        const [lowStockRes, pendingOrdersRes, newUsersRes] = await Promise.all([
+            supabase
+                .from('products')
+                .select('id', { count: 'exact' })
+                .lt('stock', 10),
+            supabase
+                .from('orders')
+                .select('id', { count: 'exact' })
+                .eq('status', 'pending'),
+            supabase
+                .from('users')
+                .select('id', { count: 'exact' })
+                .gte('created_at', today.toISOString()),
         ]);
+
+        if (lowStockRes.error || pendingOrdersRes.error || newUsersRes.error) {
+            console.error('Supabase error:', lowStockRes.error || pendingOrdersRes.error || newUsersRes.error);
+            return NextResponse.json({ error: 'Failed to fetch alerts' }, { status: 500 });
+        }
+
+        const lowStockCount = lowStockRes.count || 0;
+        const pendingOrders = pendingOrdersRes.count || 0;
+        const newUsersToday = newUsersRes.count || 0;
 
         return NextResponse.json({
             lowStockCount,

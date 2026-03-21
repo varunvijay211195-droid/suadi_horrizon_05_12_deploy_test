@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Product from '@/lib/db/models/Product';
+import { createClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET /api/admin/alerts/low-stock - Get products with low stock
@@ -15,19 +14,27 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        await connectDB();
-
         const { searchParams } = new URL(request.url);
         const threshold = parseInt(searchParams.get('threshold') || '10');
 
-        const products = await Product.find({ stock: { $lt: threshold } })
-            .sort({ stock: 1 })
+        const supabase = createClient();
+
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('*')
+            .lt('stock', threshold)
+            .order('stock', { ascending: true })
             .limit(50);
 
+        if (error) {
+            console.error('Error fetching low stock products:', error);
+            return NextResponse.json({ error: 'Failed to fetch low stock alerts' }, { status: 500 });
+        }
+
         return NextResponse.json({
-            count: products.length,
+            count: products?.length ?? 0,
             threshold,
-            products
+            products: products || []
         });
     } catch (error: unknown) {
         console.error('Error fetching low stock alerts:', error);

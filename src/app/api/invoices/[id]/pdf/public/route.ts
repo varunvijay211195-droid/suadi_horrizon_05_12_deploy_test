@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/db/mongodb';
-import Invoice from '@/lib/db/models/Invoice';
+import { createClient } from '@/lib/supabase/server';
 import { generateInvoicePDFServer } from '@/lib/invoices/generatePDFServer';
 
 export const runtime = 'nodejs';
@@ -9,26 +8,29 @@ export const dynamic = 'force-dynamic';
 // GET — Download invoice as PDF (Public)
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        await connectDB();
         const { id } = await params;
+        const supabase = createClient();
 
         // Find invoice - no auth required for public view if they have the ID
-        // (Similar to how the public invoice detail route works)
-        const invoice = await Invoice.findById(id).lean();
+        const { data: invoice, error } = await supabase
+            .from('invoices')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-        if (!invoice) {
+        if (error || !invoice) {
             return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
         }
 
         const pdfBuffer = await generateInvoicePDFServer({
-            invoiceNumber: invoice.invoiceNumber,
-            date: new Date(invoice.createdAt).toLocaleDateString('en-SA', {
+            invoiceNumber: invoice.invoice_number,
+            date: new Date(invoice.created_at).toLocaleDateString('en-SA', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
             }),
-            dueDate: invoice.dueDate
-                ? new Date(invoice.dueDate).toLocaleDateString('en-SA', {
+            dueDate: invoice.due_date
+                ? new Date(invoice.due_date).toLocaleDateString('en-SA', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -37,24 +39,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             customer: invoice.customer,
             items: invoice.items,
             subtotal: invoice.subtotal,
-            vatRate: invoice.vatRate,
-            vatAmount: invoice.vatAmount,
-            totalAmount: invoice.totalAmount,
+            vatRate: invoice.vat_rate,
+            vatAmount: invoice.vat_amount,
+            totalAmount: invoice.total_amount,
             currency: invoice.currency,
             notes: invoice.notes,
             status: invoice.status,
         });
 
-        return new NextResponse(pdfBuffer, {
+        return new NextResponse(new Uint8Array(pdfBuffer), {
             status: 200,
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `inline; filename="${invoice.invoiceNumber}.pdf"`,
+                'Content-Disposition': `inline; filename="${invoice.invoice_number}.pdf"`,
                 'Content-Length': String(pdfBuffer.length),
             },
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Public PDF error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }

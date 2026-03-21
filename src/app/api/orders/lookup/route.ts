@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Order from '@/lib/db/models/Order';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
-
         const body = await request.json();
         const { orderId, email, phone } = body;
 
@@ -16,29 +13,37 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Find order by ID and verify contact info
+        const supabase = createClient();
         let order;
 
-        // Try to find by order ID first
-        try {
-            order = await Order.findById(orderId);
-        } catch {
-            // If orderId is not a valid ObjectId, try searching differently
-            order = null;
+        // Try to find by order ID first (UUID)
+        const isUuid = orderId.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/);
+        
+        if (isUuid) {
+            const { data } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('id', orderId)
+                .single();
+            if (data) order = data;
         }
 
-        // If not found by ID, try a broader search
+        // If not found by ID, try searching by contact info
         if (!order) {
-            // Search for orders with matching contact info and get all, then find matching
-            const query: any = {};
-            if (email) query['shippingAddress.email'] = email;
-            if (phone) query['shippingAddress.phone'] = phone;
+            let query = supabase.from('orders').select('*');
+            
+            if (email) {
+                query = query.eq('shipping_address->>email', email);
+            } else if (phone) {
+                query = query.eq('shipping_address->>phone', phone);
+            }
 
-            const orders = await Order.find(query).sort({ createdAt: -1 }).limit(10);
+            const { data: contactOrders } = await query
+                .order('created_at', { ascending: false })
+                .limit(10);
 
-            // Try to find a matching order (just return first one as fallback)
-            if (orders.length > 0) {
-                order = orders[0];
+            if (contactOrders && contactOrders.length > 0) {
+                order = contactOrders[0];
             }
         }
 
@@ -49,15 +54,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Verify contact info matches (unless no contact was provided, for demo purposes)
+        // Verify contact info matches
+        const shippingAddress = order.shipping_address || {};
         const hasValidContact =
-            (email && order.shippingAddress?.email === email) ||
-            (phone && order.shippingAddress?.phone === phone);
+            (email && shippingAddress.email === email) ||
+            (phone && shippingAddress.phone === phone);
 
-        // For demo, allow access if there's any contact info on the order
-        const hasAnyContact = order.shippingAddress?.email || order.shippingAddress?.phone;
-
-        if (!hasAnyContact && (email || phone)) {
+        if (!hasValidContact) {
             return NextResponse.json(
                 { error: 'Order not found. Please check your order ID and contact information.' },
                 { status: 404 }
@@ -66,15 +69,14 @@ export async function POST(request: NextRequest) {
 
         // Return order details
         return NextResponse.json({
-            _id: order._id,
-            orderNumber: `SH-${order._id.toString().slice(-8).toUpperCase()}`,
+            ...order,
+            _id: order.id,
+            orderNumber: `SH-${order.id.toString().slice(-8).toUpperCase()}`,
             status: order.status,
-            createdAt: order.createdAt,
-            updatedAt: order.updatedAt,
-            totalAmount: order.totalAmount,
-            items: order.items,
-            shippingAddress: order.shippingAddress,
-            trackingNumber: order.trackingNumber,
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
+            totalAmount: order.total_amount,
+            shippingAddress: order.shipping_address,
         });
     } catch (error) {
         console.error('Order lookup error:', error);

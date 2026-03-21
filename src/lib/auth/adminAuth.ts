@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import User from '@/lib/db/models/User';
-import connectDB from '@/lib/db/mongodb';
+import { createClient } from '@supabase/supabase-js';
 
 export async function verifyAdminToken(request: NextRequest) {
     try {
@@ -12,20 +10,47 @@ export async function verifyAdminToken(request: NextRequest) {
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as any;
 
-        await connectDB();
-        const user = await User.findById(decoded.sub);
+        // Validate environment variables
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        if (!user) {
-            return { error: 'Invalid token. User not found.', status: 401 };
+        if (!supabaseUrl || !supabaseAnonKey) {
+            console.error('Missing required Supabase environment variables');
+            return { error: 'Server configuration error.', status: 500 };
         }
 
-        if (user.role !== 'admin') {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        // Verify the token using Supabase
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            console.error('Supabase auth verification error:', error);
+            return { error: 'Invalid token.', status: 401 };
+        }
+
+        // Check if user has admin role in the users table (if it exists)
+        const { data: userData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        const userRole = userData?.role || 'customer';
+
+        if (userRole !== 'admin') {
             return { error: 'Access denied. Admin privileges required.', status: 403 };
         }
 
-        return { user, error: null };
+        return {
+            user: {
+                id: user.id,
+                email: user.email,
+                role: userRole
+            },
+            error: null
+        };
     } catch (error: unknown) {
         console.error('Admin auth error:', error);
         return { error: 'Invalid token.', status: 401 };

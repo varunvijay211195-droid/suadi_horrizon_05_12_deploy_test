@@ -1,25 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Order from '@/lib/db/models/Order';
+import { createClient } from '@/lib/supabase/server';
+import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 export async function GET(
     request: NextRequest,
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        await connectDB();
-
         const { id } = await context.params;
-        const order = await Order.findById(id).populate('items.product');
+        const supabase = createClient();
 
-        if (!order) {
+        // Fetch order with items and products in one go if possible
+        // In Supabase, we join order_items and then products
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                order_items (
+                    *,
+                    products (*)
+                )
+            `)
+            .eq('id', id)
+            .single();
+
+        if (orderError || !order) {
             return NextResponse.json(
                 { message: 'Order not found' },
                 { status: 404 }
             );
         }
 
-        return NextResponse.json(order);
+        // Map for frontend compatibility
+        const mappedOrder = {
+            ...order,
+            _id: order.id,
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
+            totalAmount: order.total_amount,
+            shippingAddress: order.shipping_address,
+            items: (order.order_items || []).map((item: Record<string, any>) => ({
+                ...(item as Record<string, unknown>),
+                product: (item as Record<string, any>).products
+            }))
+        };
+
+        return NextResponse.json(mappedOrder);
     } catch (error: unknown) {
         console.error('Error fetching order:', error);
         return NextResponse.json(
@@ -33,38 +59,53 @@ export async function PATCH(
     request: NextRequest,
     context: { params: Promise<{ id: string }> }
 ) {
-    try {
-        await connectDB();
+    // Verify admin authentication for updates
+    const authResult = await verifyAdminToken(request);
+    if (authResult.error) {
+        return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
 
+    try {
         const { id } = await context.params;
         const body = await request.json();
         const { status, note } = body;
+        const supabase = createClient();
 
         const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'flagged'];
-        if (!validStatuses.includes(status)) {
+        if (status && !validStatuses.includes(status)) {
             return NextResponse.json(
                 { message: 'Invalid status' },
                 { status: 400 }
             );
         }
 
-        const updateFields: Record<string, any> = { status };
-        if (note) updateFields.adminNote = note;
+        const updateFields: Record<string, unknown> = {};
+        if (status) updateFields.status = status;
+        if (note) updateFields.admin_note = note;
+        updateFields.updated_at = new Date().toISOString();
 
-        const order = await Order.findByIdAndUpdate(
-            id,
-            updateFields,
-            { new: true }
-        );
+        const { data: order, error: updateError } = await supabase
+            .from('orders')
+            .update(updateFields)
+            .eq('id', id)
+            .select()
+            .single();
 
-        if (!order) {
+        if (updateError || !order) {
             return NextResponse.json(
                 { message: 'Order not found' },
                 { status: 404 }
             );
         }
 
-        return NextResponse.json(order);
+        return NextResponse.json({
+            ...order,
+            _id: order.id,
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
+            totalAmount: order.total_amount,
+            shippingAddress: order.shipping_address
+        });
     } catch (error: unknown) {
         console.error('Error updating order:', error);
         return NextResponse.json(

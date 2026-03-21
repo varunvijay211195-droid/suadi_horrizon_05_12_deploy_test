@@ -37,13 +37,17 @@ export default function ComparisonTable({
                             Feature
                         </th>
                         {products.map((product) => (
-                            <th key={product._id} className="px-6 py-4 min-w-[250px]">
+                            <th key={product.id} className="px-6 py-4 min-w-[250px]">
                                 <div className="text-center">
                                     {/* Product Image */}
                                     <div className="relative w-24 h-24 mx-auto mb-3 rounded-lg overflow-hidden bg-white/5 border border-white/10">
                                         {product.image ? (
                                             <Image
-                                                src={product.image}
+                                                src={
+                                                    typeof product.image === 'object'
+                                                        ? product.image.url
+                                                        : product.image
+                                                }
                                                 alt={product.name}
                                                 fill
                                                 className="object-cover"
@@ -77,15 +81,15 @@ export default function ComparisonTable({
                             Price
                         </td>
                         {products.map((product) => (
-                            <td key={product._id} className="px-6 py-4 text-center">
+                            <td key={product.id} className="px-6 py-4 text-center">
                                 <div className="relative inline-block">
-                                    <div className={`text-2xl font-bold ${isHighlighted(product._id, 'lowest_price')
+                                    <div className={`text-2xl font-bold ${isHighlighted(product.id, 'lowest_price')
                                             ? 'text-yellow'
                                             : 'text-white'
                                         }`}>
                                         ${product.price.toFixed(2)}
                                     </div>
-                                    {isHighlighted(product._id, 'lowest_price') && (
+                                    {isHighlighted(product.id, 'lowest_price') && (
                                         <div className="absolute -top-2 -right-8">
                                             <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow/20 border border-yellow rounded-full">
                                                 <TrendingDown className="w-3 h-3 text-yellow" />
@@ -121,7 +125,7 @@ export default function ComparisonTable({
                             Category
                         </td>
                         {products.map((product) => (
-                            <td key={product._id} className="px-6 py-4 text-center">
+                            <td key={product.id} className="px-6 py-4 text-center">
                                 <div className={`text-sm ${getValueDifference('category', product.category, products.map(p => p.category))
                                         ? 'text-white'
                                         : 'text-white/70'
@@ -138,7 +142,7 @@ export default function ComparisonTable({
                             Availability
                         </td>
                         {products.map((product) => (
-                            <td key={product._id} className="px-6 py-4">
+                            <td key={product.id} className="px-6 py-4">
                                 <div className="flex flex-col items-center gap-2">
                                     {product.inStock ? (
                                         <>
@@ -165,14 +169,14 @@ export default function ComparisonTable({
                             Rating
                         </td>
                         {products.map((product) => (
-                            <td key={product._id} className="px-6 py-4">
+                            <td key={product.id} className="px-6 py-4">
                                 <div className="flex flex-col items-center gap-2">
                                     <div className="flex items-center gap-2">
-                                        <Star className={`w-4 h-4 ${isHighlighted(product._id, 'highest_rating')
+                                        <Star className={`w-4 h-4 ${isHighlighted(product.id, 'highest_rating')
                                                 ? 'fill-yellow text-yellow'
                                                 : 'fill-white/20 text-white/20'
                                             }`} />
-                                        <span className={`text-sm font-medium ${isHighlighted(product._id, 'highest_rating')
+                                        <span className={`text-sm font-medium ${isHighlighted(product.id, 'highest_rating')
                                                 ? 'text-yellow'
                                                 : 'text-white'
                                             }`}>
@@ -184,7 +188,7 @@ export default function ComparisonTable({
                                             {product.reviews} {product.reviews === 1 ? 'review' : 'reviews'}
                                         </div>
                                     )}
-                                    {isHighlighted(product._id, 'highest_rating') && (
+                                    {isHighlighted(product.id, 'highest_rating') && (
                                         <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow/20 border border-yellow rounded-full">
                                             <Award className="w-3 h-3 text-yellow" />
                                             <span className="text-xs font-medium text-yellow">Top Rated</span>
@@ -201,7 +205,7 @@ export default function ComparisonTable({
                             OEM Code
                         </td>
                         {products.map((product) => (
-                            <td key={product._id} className="px-6 py-4 text-center">
+                            <td key={product.id} className="px-6 py-4 text-center">
                                 <div className="text-sm font-mono text-white/70">
                                     {product.oemCode || 'N/A'}
                                 </div>
@@ -216,7 +220,7 @@ export default function ComparisonTable({
                                 Compatibility
                             </td>
                             {products.map((product) => (
-                                <td key={product._id} className="px-6 py-4">
+                                <td key={product.id} className="px-6 py-4">
                                     <div className="flex flex-col gap-1">
                                         {product.compatibility && product.compatibility.length > 0 ? (
                                             product.compatibility.slice(0, 3).map((comp, idx) => (
@@ -242,7 +246,7 @@ export default function ComparisonTable({
                     <tr className="bg-white/5">
                         <td className="sticky left-0 z-10 bg-navy/50 px-6 py-4"></td>
                         {products.map((product) => (
-                            <td key={product._id} className="px-6 py-4">
+                            <td key={product.id} className="px-6 py-4">
                                 <button
                                     className="w-full px-4 py-3 bg-yellow text-navy font-semibold rounded-lg hover:bg-yellow/90 transition-all hover:scale-105 flex items-center justify-center gap-2"
                                     disabled={!product.inStock}

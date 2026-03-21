@@ -56,7 +56,7 @@ export function Footer() {
   ];
 
   // Use top 6 categories for the footer
-  const footerCategories = categories.slice(0, 6);
+  const footerCategories = categories?.slice(0, 6) || [];
 
   return (
     <footer ref={footerRef} className="bg-charcoal pt-24 pb-8 border-t border-white/5 relative z-10 font-sans">

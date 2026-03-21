@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Settings, ChevronRight, Tooltip as TooltipIcon, Cpu, Zap, ShieldCheck } from "lucide-react";
+import { Search, Settings, ChevronRight, Cpu, Zap, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 

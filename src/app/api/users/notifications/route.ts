@@ -1,23 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
+import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/middleware';
 
 // GET /api/users/notifications - Get notification preferences
 export async function GET(request: NextRequest) {
     try {
-        await connectDB();
+        const supabase = createClient();
         const user = await requireAuth(request);
 
-        const dbUser = await User.findById(user.sub);
-        if (!dbUser) {
+        const { data: dbUser, error } = await supabase
+            .from('users')
+            .select('notification_preferences')
+            .eq('id', user.sub)
+            .single();
+
+        if (error) {
+            console.error('Error fetching user:', error);
             return NextResponse.json(
                 { error: 'User not found' },
                 { status: 404 }
             );
         }
 
-        return NextResponse.json(dbUser.notificationPreferences || {
+        return NextResponse.json(dbUser.notification_preferences || {
             orderUpdates: true,
             promotionalEmails: false,
             smsNotifications: true,
@@ -38,7 +43,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/users/notifications - Update notification preferences
 export async function PUT(request: NextRequest) {
     try {
-        await connectDB();
+        const supabase = createClient();
         const user = await requireAuth(request);
 
         const body = await request.json();
@@ -52,28 +57,50 @@ export async function PUT(request: NextRequest) {
             priceAlerts
         } = body;
 
-        const dbUser = await User.findById(user.sub);
-        if (!dbUser) {
+        // Get current preferences
+        const { data: currentUser, error: fetchError } = await supabase
+            .from('users')
+            .select('notification_preferences')
+            .eq('id', user.sub)
+            .single();
+
+        if (fetchError) {
+            console.error('Error fetching user:', fetchError);
             return NextResponse.json(
                 { error: 'User not found' },
                 { status: 404 }
             );
         }
 
+        const currentPrefs = currentUser.notification_preferences || {};
+
         // Update notification preferences
-        dbUser.notificationPreferences = {
-            orderUpdates: orderUpdates !== undefined ? orderUpdates : dbUser.notificationPreferences?.orderUpdates ?? true,
-            promotionalEmails: promotionalEmails !== undefined ? promotionalEmails : dbUser.notificationPreferences?.promotionalEmails ?? false,
-            smsNotifications: smsNotifications !== undefined ? smsNotifications : dbUser.notificationPreferences?.smsNotifications ?? true,
-            pushNotifications: pushNotifications !== undefined ? pushNotifications : dbUser.notificationPreferences?.pushNotifications ?? true,
-            newsletter: newsletter !== undefined ? newsletter : dbUser.notificationPreferences?.newsletter ?? false,
-            newProducts: newProducts !== undefined ? newProducts : dbUser.notificationPreferences?.newProducts ?? true,
-            priceAlerts: priceAlerts !== undefined ? priceAlerts : dbUser.notificationPreferences?.priceAlerts ?? true
+        const updatedPreferences = {
+            orderUpdates: orderUpdates !== undefined ? orderUpdates : currentPrefs.orderUpdates ?? true,
+            promotionalEmails: promotionalEmails !== undefined ? promotionalEmails : currentPrefs.promotionalEmails ?? false,
+            smsNotifications: smsNotifications !== undefined ? smsNotifications : currentPrefs.smsNotifications ?? true,
+            pushNotifications: pushNotifications !== undefined ? pushNotifications : currentPrefs.pushNotifications ?? true,
+            newsletter: newsletter !== undefined ? newsletter : currentPrefs.newsletter ?? false,
+            newProducts: newProducts !== undefined ? newProducts : currentPrefs.newProducts ?? true,
+            priceAlerts: priceAlerts !== undefined ? priceAlerts : currentPrefs.priceAlerts ?? true
         };
 
-        await dbUser.save();
+        const { data: updatedUser, error: updateError } = await supabase
+            .from('users')
+            .update({ notification_preferences: updatedPreferences })
+            .eq('id', user.sub)
+            .select('notification_preferences')
+            .single();
 
-        return NextResponse.json(dbUser.notificationPreferences);
+        if (updateError) {
+            console.error('Error updating notification preferences:', updateError);
+            return NextResponse.json(
+                { error: 'Failed to update notification preferences' },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json(updatedUser.notification_preferences);
     } catch (error: unknown) {
         console.error('Error updating notification preferences:', error);
         return NextResponse.json(

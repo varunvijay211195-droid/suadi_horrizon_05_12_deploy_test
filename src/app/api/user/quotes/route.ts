@@ -1,32 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import QuoteRequest from '@/lib/db/models/QuoteRequest';
-import { verifyAccessToken } from '@/lib/auth/jwt';
+import { createClient } from '@/lib/supabase/server';
+import { verifyAuth } from '@/lib/auth/middleware';
 
 export async function GET(request: NextRequest) {
     try {
-        await connectDB();
-
-        // Authenticate user
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+        const payload = await verifyAuth(request);
+        if (!payload) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const token = authHeader.split(' ')[1];
-        let payload;
-        try {
-            payload = verifyAccessToken(token);
-        } catch (e) {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-        }
-
         const userId = payload.sub;
+        const supabase = createClient();
 
-        const quotes = await QuoteRequest.find({ userId })
-            .sort({ createdAt: -1 });
+        const { data: quotes, error } = await supabase
+            .from('quote_requests')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
 
-        return NextResponse.json({ quotes });
+        if (error) throw error;
+
+        // Normalize for frontend compatibility if needed
+        const mappedQuotes = (quotes || []).map(q => ({
+            ...q,
+            _id: q.id, // Legacy compatibility
+            userId: q.user_id,
+            createdAt: q.created_at,
+            updatedAt: q.updated_at
+        }));
+
+        return NextResponse.json({ quotes: mappedQuotes });
     } catch (error: any) {
         console.error('Error fetching user quotes:', error);
         return NextResponse.json(

@@ -36,7 +36,7 @@ export default function WishlistPage() {
             try {
                 // If the user has wishlist items in the context but hasn't fetched them yet
                 const res = await getProducts({ limit: 1000 });
-                setProducts(res.products.filter(p => wishlistItems.includes(p._id)));
+                setProducts(res.products.filter(p => wishlistItems.includes(p.id)));
             } catch (error) {
                 console.error('Error fetching products:', error);
                 toast.error('Failed to load wishlist products');
@@ -55,15 +55,16 @@ export default function WishlistPage() {
 
     const handleAddToCart = (product: Product) => {
         addToCart({
-            _id: product._id,
+            id: product.id,
+            product_id: product.id,
             name: product.name,
             price: product.price,
             quantity: 1,
-            image: product.image,
+            image: typeof product.image === 'object' ? (product.image?.url || '') : (product.image || ''),
             sku: product.sku,
             type: 'product',
         });
-        removeFromWishlist(product._id);
+        removeFromWishlist(product.id);
         toast.success(`${product.name} added to cart`);
     };
 
@@ -168,7 +169,7 @@ export default function WishlistPage() {
                                     <AnimatePresence mode="popLayout">
                                         {products.map((product) => (
                                             <motion.div
-                                                key={product._id}
+                                                key={product.id}
                                                 layout
                                                 initial={{ opacity: 0, scale: 0.95 }}
                                                 animate={{ opacity: 1, scale: 1 }}
@@ -181,12 +182,12 @@ export default function WishlistPage() {
                                                             {/* Product Image */}
                                                             <div className="w-32 h-32 bg-white/5 relative flex-shrink-0">
                                                                 <img
-                                                                    src={product.image || '/images/placeholder.svg'}
+                                                                    src={typeof product.image === 'object' ? (product.image?.url || '/images/placeholder.svg') : (product.image || '/images/placeholder.svg')}
                                                                     alt={product.name}
                                                                     className="w-full h-full object-cover"
                                                                 />
                                                                 <button
-                                                                    onClick={() => removeFromWishlist(product._id)}
+                                                                    onClick={() => removeFromWishlist(product.id)}
                                                                     className="absolute top-2 right-2 w-8 h-8 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100"
                                                                 >
                                                                     <X className="w-4 h-4" />
@@ -217,7 +218,7 @@ export default function WishlistPage() {
                                                                         size="sm"
                                                                         className="bg-white/5 hover:bg-gold hover:text-navy text-gold font-bold border-none h-8 px-3"
                                                                         onClick={() => handleAddToCart(product)}
-                                                                        disabled={!product.inStock}
+                                                                        disabled={!product.in_stock}
                                                                     >
                                                                         <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
                                                                         Add

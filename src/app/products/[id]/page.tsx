@@ -31,7 +31,11 @@ export default function ProductDetailPage() {
             try {
                 const res = await getProductById(productId);
                 setProduct(res);
-                setActiveImage(res.image);
+                setActiveImage(
+                    typeof res.image === 'object'
+                        ? res.image?.url || ''
+                        : res.image || ''
+                );
 
                 // Load related products
                 try {
@@ -57,11 +61,12 @@ export default function ProductDetailPage() {
         if (!product) return;
 
         addToCart({
-            _id: product._id,
+            id: product.id,
+            product_id: product.id,
             name: product.name,
             price: product.price,
             quantity: quantity,
-            image: product.image,
+            image: typeof product.image === 'object' ? (product.image?.url || '') : (product.image || ''),
             sku: product.sku,
             type: 'product',
         });
@@ -130,25 +135,36 @@ export default function ProductDetailPage() {
                         {/* Main Image */}
                         <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden mb-4">
                             <img
-                                src={activeImage || product.image}
+                                src={
+                                    activeImage ||
+                                    (typeof product.image === 'object'
+                                        ? product.image?.url || ''
+                                        : product.image || '')
+                                }
                                 alt={product.name}
                                 className="w-full h-full object-contain"
                             />
                         </div>
 
                         {/* Thumbnail Images */}
-                        {product.images && product.images.length > 1 && (
+                        {(product.gallery?.length || 0) > 0 && (
                             <div className="flex gap-2 overflow-x-auto">
-                                {[product.image, ...product.images].map((img, index) => (
-                                    <button
-                                        key={index}
-                                        className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${activeImage === img ? 'border-yellow-500' : 'border-transparent'
-                                            }`}
-                                        onClick={() => setActiveImage(img)}
-                                    >
-                                        <img src={img} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
-                                    </button>
-                                ))}
+                                {([product.image, ...(product.gallery || [])] as Array<string | { url?: string }>)
+                                    .filter(Boolean)
+                                    .map((img, index) => {
+                                        const url = typeof img === 'object' ? img.url || '' : img;
+
+                                        return (
+                                            <button
+                                                key={index}
+                                                className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${activeImage === url ? 'border-yellow-500' : 'border-transparent'
+                                                    }`}
+                                                onClick={() => setActiveImage(url)}
+                                            >
+                                                <img src={url} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
+                                            </button>
+                                        );
+                                    })}
                             </div>
                         )}
                     </motion.div>
@@ -194,9 +210,9 @@ export default function ProductDetailPage() {
                             <span className="text-4xl font-bold text-yellow-500">
                                 ${product.price.toLocaleString()}
                             </span>
-                            {product.originalPrice && (
+                            {product.original_price && (
                                 <span className="text-xl text-gray-500 line-through">
-                                    ${product.originalPrice?.toLocaleString()}
+                                    ${product.original_price?.toLocaleString()}
                                 </span>
                             )}
                         </div>
@@ -274,8 +290,8 @@ export default function ProductDetailPage() {
                             </TabsList>
                             <TabsContent value="specs" className="mt-4">
                                 <div className="space-y-2">
-                                    {(product.specifications || product.specs) &&
-                                        Object.entries(product.specifications || product.specs || {}).map(([key, value]) => (
+                                    {product.specs &&
+                                        Object.entries(product.specs || {}).map(([key, value]) => (
                                             <div key={key} className="flex justify-between py-2 border-b border-gray-800">
                                                 <span className="text-gray-400">{key}</span>
                                                 <span className="font-medium">{String(value)}</span>
@@ -302,15 +318,16 @@ export default function ProductDetailPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {relatedProducts.map((relatedProduct, index) => (
                                 <ProductCard
-                                    key={relatedProduct._id}
+                                    key={relatedProduct.id}
                                     product={relatedProduct}
                                     onAddToCart={(p) => {
                                         addToCart({
-                                            _id: p._id,
+                                            id: p.id,
+                                            product_id: p.id,
                                             name: p.name,
                                             price: p.price,
                                             quantity: 1,
-                                            image: p.image,
+                                            image: typeof p.image === 'object' ? (p.image?.url || '') : (p.image || ''),
                                             sku: p.sku,
                                             type: 'product',
                                         });

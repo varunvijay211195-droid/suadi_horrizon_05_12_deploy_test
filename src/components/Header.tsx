@@ -27,15 +27,29 @@ export function Header() {
 
   useEffect(() => {
     // Set cart count on mount to avoid hydration mismatch
-    setCartCount(getCart().length)
+    const loadCartCount = async () => {
+      try {
+        const cartItems = await getCart();
+        setCartCount(cartItems.length);
+      } catch (error) {
+        console.error('Failed to load cart count:', error);
+        setCartCount(0);
+      }
+    };
+    loadCartCount();
 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
     }
 
     // Listen for cart updates from other components
-    const handleCartUpdate = () => {
-      setCartCount(getCart().length)
+    const handleCartUpdate = async () => {
+      try {
+        const cartItems = await getCart();
+        setCartCount(cartItems.length);
+      } catch (error) {
+        console.error('Failed to update cart count:', error);
+      }
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })

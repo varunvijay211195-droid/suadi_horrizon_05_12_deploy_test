@@ -38,7 +38,7 @@ export const ProductTableRow: React.FC<ProductTableRowProps> = ({
                     <div>
                         <h3
                             className="font-bold text-lg text-white hover:text-gold cursor-pointer truncate font-display transition-colors"
-                            onClick={() => router.push(`/products/${product._id}`)}
+                            onClick={() => router.push(`/products/${product.id}`)}
                         >
                             {product.name}
                         </h3>
@@ -87,7 +87,7 @@ export const ProductTableRow: React.FC<ProductTableRowProps> = ({
                     size="sm"
                     variant="outline"
                     className="glass border-white/10 hover:bg-white/10 hover:text-white transition-all text-slate-300"
-                    onClick={() => router.push(`/products/${product._id}`)}
+                    onClick={() => router.push(`/products/${product.id}`)}
                 >
                     <Eye className="w-4 h-4 mr-1" />
                     View

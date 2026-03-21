@@ -173,3 +173,15 @@ export function useAuth() {
     }
     return context;
 }
+
+// Alias for useSession compatibility
+export function useSession() {
+    const { user, isAuthenticated } = useAuth();
+    return { 
+        user: user ? { 
+            ...user, 
+            token: typeof window !== 'undefined' ? localStorage.getItem('accessToken') || '' : '' 
+        } : null,
+        isAuthenticated
+    };
+}

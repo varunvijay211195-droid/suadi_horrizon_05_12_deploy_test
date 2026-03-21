@@ -1,24 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mongoose from 'mongoose';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
+import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/middleware';
 
 // GET /api/users/addresses - Get all addresses for the current user
 export async function GET(request: NextRequest) {
     try {
-        await connectDB();
+        const supabase = createClient();
         const user = await requireAuth(request);
 
-        const dbUser = await User.findById(user.sub);
-        if (!dbUser) {
+        const { data: addresses, error } = await supabase
+            .from('user_addresses')
+            .select('*')
+            .eq('user_id', user.sub)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching addresses:', error);
             return NextResponse.json(
-                { error: 'User not found' },
-                { status: 404 }
+                { error: 'Failed to fetch addresses' },
+                { status: 500 }
             );
         }
 
-        return NextResponse.json(dbUser.addresses || []);
+        const formattedAddresses = (addresses || []).map(a => ({
+            _id: a.id,
+            id: a.id,
+            name: a.name,
+            fullName: a.full_name,
+            address: a.address,
+            city: a.city,
+            state: a.state,
+            zipCode: a.zip_code,
+            country: a.country,
+            phone: a.phone,
+            isDefault: a.is_default,
+            createdAt: a.created_at,
+            updatedAt: a.updated_at
+        }));
+
+        return NextResponse.json(formattedAddresses);
     } catch (error: unknown) {
         console.error('Error fetching addresses:', error);
         return NextResponse.json(
@@ -31,7 +51,7 @@ export async function GET(request: NextRequest) {
 // POST /api/users/addresses - Add a new address
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
+        const supabase = createClient();
         const user = await requireAuth(request);
 
         const body = await request.json();
@@ -45,43 +65,62 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const dbUser = await User.findById(user.sub);
-        if (!dbUser) {
+        // If this is set as default, unset other defaults
+        if (isDefault) {
+            await supabase
+                .from('user_addresses')
+                .update({ is_default: false })
+                .eq('user_id', user.sub);
+        }
+
+        // Check if this is the first address to make it default
+        const { count } = await supabase
+            .from('user_addresses')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.sub);
+
+        const { data: newAddress, error } = await supabase
+            .from('user_addresses')
+            .insert({
+                user_id: user.sub,
+                name,
+                full_name: fullName,
+                address,
+                city,
+                state,
+                zip_code: zipCode,
+                country,
+                phone,
+                is_default: isDefault || (count === 0)
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error adding address:', error);
             return NextResponse.json(
-                { error: 'User not found' },
-                { status: 404 }
+                { error: 'Failed to add address' },
+                { status: 500 }
             );
         }
 
-        // If this is set as default, unset other defaults
-        if (isDefault && dbUser.addresses && dbUser.addresses.length > 0) {
-            dbUser.addresses = dbUser.addresses.map((addr: any) => ({
-                ...addr.toObject(),
-                isDefault: false
-            }));
-        }
-
-        // Add new address
-        const newAddress = {
-            _id: new mongoose.Types.ObjectId(),
-            name,
-            fullName,
-            address,
-            city,
-            state,
-            zipCode,
-            country,
-            phone,
-            isDefault: isDefault || (dbUser.addresses?.length === 0)
+        const formattedAddress = {
+            _id: newAddress.id,
+            id: newAddress.id,
+            name: newAddress.name,
+            fullName: newAddress.full_name,
+            address: newAddress.address,
+            city: newAddress.city,
+            state: newAddress.state,
+            zipCode: newAddress.zip_code,
+            country: newAddress.country,
+            phone: newAddress.phone,
+            isDefault: newAddress.is_default,
+            createdAt: newAddress.created_at,
+            updatedAt: newAddress.updated_at
         };
 
-        if (!dbUser.addresses) {
-            dbUser.addresses = [];
-        }
-        dbUser.addresses.push(newAddress);
-        await dbUser.save();
-
-        return NextResponse.json(newAddress, { status: 201 });
+        return NextResponse.json(formattedAddress, { status: 201 });
     } catch (error: unknown) {
         console.error('Error adding address:', error);
         return NextResponse.json(

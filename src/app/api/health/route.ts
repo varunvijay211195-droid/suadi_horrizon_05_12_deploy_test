@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
     try {
-        // Test database connection
-        await connectDB();
+        const supabase = createClient();
+
+        // Simple query to validate the Supabase connection
+        const { error } = await supabase
+            .from('users')
+            .select('id', { count: 'exact' })
+            .limit(1);
+
+        if (error) {
+            throw error;
+        }
 
         return NextResponse.json({
             status: 'ok',

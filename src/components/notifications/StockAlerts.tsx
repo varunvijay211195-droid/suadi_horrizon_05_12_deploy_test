@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from '@/app/providers';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePathname } from 'next/navigation';
 import { Bell, BellOff, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ export default function StockAlerts() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [subscribeLoading, setSubscribeLoading] = useState(false);
-  const { user } = useSession();
+  const { user } = useAuth();
   const pathname = usePathname();
 
   useEffect(() => {

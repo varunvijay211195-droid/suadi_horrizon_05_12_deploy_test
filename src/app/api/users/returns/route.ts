@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
 import { requireAuth } from '@/lib/auth/middleware';
 
 // GET /api/users/returns - Get user's return requests
 // For now, returns an empty array since the Returns collection isn't set up yet
 export async function GET(request: NextRequest) {
     try {
-        await connectDB();
         await requireAuth(request);
 
         // Return empty array - returns feature is not fully implemented yet
@@ -23,7 +21,6 @@ export async function GET(request: NextRequest) {
 // POST /api/users/returns - Create a return request
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
         await requireAuth(request);
 
         const body = await request.json();

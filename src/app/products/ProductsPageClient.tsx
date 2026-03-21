@@ -316,7 +316,8 @@ export default function ProductsPageClient() {
 
     const handleAddToCart = (product: Product) => {
         addToCart({
-            _id: product._id,
+            id: product.id,
+            product_id: product.id,
             name: product.name,
             price: product.price,
             quantity: 1,
@@ -332,7 +333,7 @@ export default function ProductsPageClient() {
         setInquiryDialog({
             open: true,
             productName: product.name,
-            productId: product._id,
+            productId: product.id,
         });
     };
 
@@ -478,9 +479,9 @@ export default function ProductsPageClient() {
                                                         </div>
                                                         {processedProducts.slice(0, 5).map((p) => (
                                                             <button
-                                                                key={p._id}
+                                                                key={p.id}
                                                                 onClick={() => {
-                                                                    router.push(`/products/${p._id}`);
+                                                                    router.push(`/products/${p.id}`);
                                                                     setIsSearchFocused(false);
                                                                 }}
                                                                 className="w-full px-5 py-4 flex items-center gap-4 hover:bg-white/5 border-b border-white/[0.03] last:border-0 transition-all text-left group/res outline-none"
@@ -791,7 +792,7 @@ export default function ProductsPageClient() {
                                             className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-4 md:gap-5"
                                         >
                                             {paginatedProducts.map((product, index) => (
-                                                <div key={product._id} className="product-card-animated">
+                                                <div key={product.id} className="product-card-animated">
                                                     <ProductCard
                                                         product={product}
                                                         onAddToCart={handleAddToCart}
@@ -809,7 +810,7 @@ export default function ProductsPageClient() {
                                         >
                                             {paginatedProducts.map((product) => (
                                                 <ProductTableRow
-                                                    key={product._id}
+                                                    key={product.id}
                                                     product={product}
                                                     onAddToCart={handleAddToCart}
                                                     onQuickInquiry={handleQuickInquiry}
@@ -896,7 +897,7 @@ export default function ProductsPageClient() {
             </div>
 
             <ComparisonBar products={products} onCompare={() => setComparisonModalOpen(true)} />
-            <ComparisonModal products={products.filter(p => comparisonProducts.includes(p._id))} isOpen={comparisonModalOpen} onClose={() => setComparisonModalOpen(false)} />
+            <ComparisonModal products={products.filter(p => comparisonProducts.includes(p.id))} isOpen={comparisonModalOpen} onClose={() => setComparisonModalOpen(false)} />
             <ConfiguratorModal isOpen={configuratorOpen} onClose={() => setConfiguratorOpen(false)} onEquipmentSelect={setSelectedEquipment} selectedEquipment={selectedEquipment} equipmentData={equipmentDatabase} />
             <QuickInquiryDialog open={inquiryDialog.open} onOpenChange={(open) => setInquiryDialog({ ...inquiryDialog, open })} productName={inquiryDialog.productName} productId={inquiryDialog.productId} />
 

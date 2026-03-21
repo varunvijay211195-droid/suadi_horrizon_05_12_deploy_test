@@ -7,10 +7,10 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 
 function Counter({ value, suffix, inView }: { value: number; suffix: string; inView: boolean }) {
-    const [count, setCount] = useState(0);
+    const [count, setCount] = useState(inView ? 0 : value);
 
     useEffect(() => {
-        if (!inView) return;
+        if (!inView || count === value) return;
 
         let start = 0;
         const duration = 2000;
@@ -27,7 +27,7 @@ function Counter({ value, suffix, inView }: { value: number; suffix: string; inV
         }, 16);
 
         return () => clearInterval(timer);
-    }, [inView, value]);
+    }, [inView, value, count]);
 
     return (
         <span className="text-3xl md:text-4xl font-bold text-gradient-gold block mb-1">

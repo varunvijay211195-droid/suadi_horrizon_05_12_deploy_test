@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Product from '@/lib/db/models/Product';
+import { createClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET /api/admin/inventory/alerts - Get stock alerts
@@ -14,36 +13,55 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        await connectDB();
+        const supabase = createClient();
 
         // Critical alerts (out of stock)
-        const criticalAlerts = await Product.find({ stock: 0 })
-            .select('name sku stock price category')
-            .sort({ updatedAt: -1 });
+        const { data: criticalAlerts, error: criticalError } = await supabase
+            .from('products')
+            .select('name, sku, stock, price, category')
+            .eq('stock', 0)
+            .order('updated_at', { ascending: false });
+
+        if (criticalError) {
+            throw criticalError;
+        }
 
         // Warning alerts (low stock - less than 10 units)
-        const warningAlerts = await Product.find({
-            stock: { $gt: 0, $lt: 10 }
-        })
-            .select('name sku stock price category')
-            .sort({ stock: 1 });
+        const { data: warningAlerts, error: warningError } = await supabase
+            .from('products')
+            .select('name, sku, stock, price, category')
+            .gt('stock', 0)
+            .lt('stock', 10)
+            .order('stock', { ascending: true });
+
+        if (warningError) {
+            throw warningError;
+        }
 
         // Calculate alert statistics
-        const alertStats = await Product.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    totalCritical: { $sum: { $cond: [{ $eq: ['$stock', 0] }, 1, 0] } },
-                    totalWarning: { $sum: { $cond: [{ $and: [{ $gt: ['$stock', 0] }, { $lt: ['$stock', 10] }] }, 1, 0] } },
-                    totalLowStock: { $sum: { $cond: [{ $lt: ['$stock', 10] }, 1, 0] } }
-                }
-            }
-        ]);
+        const { data: allProducts, error: allError } = await supabase
+            .from('products')
+            .select('stock');
+
+        if (allError) {
+            throw allError;
+        }
+
+        const alertStats = (allProducts || []).reduce(
+            (acc, p: any) => {
+                const stock = p.stock ?? 0;
+                if (stock === 0) acc.totalCritical += 1;
+                if (stock > 0 && stock < 10) acc.totalWarning += 1;
+                if (stock < 10) acc.totalLowStock += 1;
+                return acc;
+            },
+            { totalCritical: 0, totalWarning: 0, totalLowStock: 0 }
+        );
 
         return NextResponse.json({
-            critical: criticalAlerts,
-            warning: warningAlerts,
-            stats: alertStats[0] || { totalCritical: 0, totalWarning: 0, totalLowStock: 0 }
+            critical: criticalAlerts || [],
+            warning: warningAlerts || [],
+            stats: alertStats
         });
     } catch (error: unknown) {
         console.error('Error fetching inventory alerts:', error);
@@ -65,29 +83,29 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        await connectDB();
         const { type } = await request.json();
+        const supabase = createClient();
 
         // Get alerts based on type
-        let alerts;
+        let query = supabase.from('products').select('name, sku, stock, price, category');
         if (type === 'critical') {
-            alerts = await Product.find({ stock: 0 });
+            query = query.eq('stock', 0);
         } else if (type === 'warning') {
-            alerts = await Product.find({ stock: { $gt: 0, $lt: 10 } });
+            query = query.gt('stock', 0).lt('stock', 10);
         } else {
-            alerts = await Product.find({ stock: { $lt: 10 } });
+            query = query.lt('stock', 10);
+        }
+
+        const { data: alerts, error } = await query;
+
+        if (error) {
+            throw error;
         }
 
         return NextResponse.json({
             message: 'Stock alerts processed',
-            alertsCount: alerts.length,
-            alerts: alerts.map(p => ({
-                name: p.name,
-                sku: p.sku,
-                stock: p.stock,
-                price: p.price,
-                category: p.category
-            }))
+            alertsCount: (alerts || []).length,
+            alerts: alerts || []
         });
     } catch (error: unknown) {
         console.error('Error processing stock alerts:', error);

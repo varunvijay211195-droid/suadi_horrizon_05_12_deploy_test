@@ -118,7 +118,7 @@ export function calculateComparisonHighlights(products: IProduct[]): ComparisonH
     const lowestPriceProduct = products.find(p => p.price === lowestPrice);
     if (lowestPriceProduct) {
         highlights.push({
-            productId: lowestPriceProduct._id,
+            productId: lowestPriceProduct.id,
             type: 'lowest_price'
         });
     }
@@ -128,7 +128,7 @@ export function calculateComparisonHighlights(products: IProduct[]): ComparisonH
     const highestRatingProduct = products.find(p => (p.rating || 0) === highestRating);
     if (highestRatingProduct && highestRating > 0) {
         highlights.push({
-            productId: highestRatingProduct._id,
+            productId: highestRatingProduct.id,
             type: 'highest_rating'
         });
     }
@@ -137,7 +137,7 @@ export function calculateComparisonHighlights(products: IProduct[]): ComparisonH
     products.forEach(product => {
         if (product.inStock && product.stock > 0) {
             highlights.push({
-                productId: product._id,
+                productId: product.id,
                 type: 'in_stock'
             });
         }
@@ -159,6 +159,6 @@ export function prepareComparisonExport(products: IProduct[]): ComparisonExportD
     return {
         products,
         exportDate: new Date().toISOString(),
-        comparisonUrl: generateComparisonUrl(products.map(p => p._id))
+        comparisonUrl: generateComparisonUrl(products.map(p => p.id))
     };
 }

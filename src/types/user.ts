@@ -1,5 +1,6 @@
 export interface User {
-    _id: string;
+    id: string;
+    _id?: string; // Keep for backward compatibility during migration
     email: string;
     name?: string;
     role: string;

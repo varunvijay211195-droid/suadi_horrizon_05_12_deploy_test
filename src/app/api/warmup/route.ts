@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
     try {
-        // Pre-connect to database by making a quick connection test
-        await connectDB();
+        const supabase = createClient();
+
+        // Simple query to warm up the connection
+        const { error } = await supabase
+            .from('users')
+            .select('id', { count: 'exact' })
+            .limit(1);
+
+        if (error) {
+            throw error;
+        }
+
         return NextResponse.json({
             status: 'ok',
             message: 'Database connection warmed up'

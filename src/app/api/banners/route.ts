@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Banner from '@/lib/db/models/Banner';
+import { createClient } from '@/lib/supabase/server';
 
 // GET /api/banners?position=hero  — public, no auth required
 export async function GET(request: NextRequest) {
     try {
-        await connectDB();
+        const supabase = createClient();
 
         const { searchParams } = new URL(request.url);
         const position = searchParams.get('position');
 
-        const query: Record<string, unknown> = { isActive: true };
-        if (position) query.position = position;
+        let query = supabase
+            .from('banners')
+            .select('*')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
 
-        const banners = await Banner.find(query).sort({ createdAt: -1 });
+        if (position) {
+            query = query.eq('position', position);
+        }
 
-        return NextResponse.json({ banners });
+        const { data: banners, error } = await query;
+
+        if (error) {
+            console.error('Error fetching public banners:', error);
+            return NextResponse.json({ banners: [] });
+        }
+
+        return NextResponse.json({ banners: banners || [] });
     } catch (error) {
         console.error('Error fetching public banners:', error);
         return NextResponse.json({ banners: [] });

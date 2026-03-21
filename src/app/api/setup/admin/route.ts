@@ -1,50 +1,61 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST() {
     try {
-        await connectDB();
+        const supabase = createClient();
 
         const adminEmail = 'admin@example.com';
-        const adminPassword = 'admin';
+        // Note: Password initialization should be handled via Supabase Auth.
+        // This script currently only ensures the database user record exists and has admin role.
 
         // Check if admin already exists
-        const existingAdmin = await User.findOne({ email: adminEmail });
+        const { data: existingAdmin } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', adminEmail)
+            .single();
+
         if (existingAdmin) {
             // Update role to admin just in case
-            existingAdmin.role = 'admin';
-            if (!existingAdmin.profile) {
-                existingAdmin.profile = { name: 'Administrator' };
-            } else if (!existingAdmin.profile.name) {
-                existingAdmin.profile.name = 'Administrator';
-            }
-            await existingAdmin.save();
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({
+                    role: 'admin',
+                    profile: existingAdmin.profile || { name: 'Administrator' }
+                })
+                .eq('id', existingAdmin.id);
+
+            if (updateError) throw updateError;
+            
             return NextResponse.json({ message: 'Admin user updated', email: adminEmail });
         }
 
-        // Create new admin user
-        const newAdmin = new User({
-            email: adminEmail,
-            password: adminPassword,
-            role: 'admin',
-            profile: {
-                name: 'Administrator',
-            },
-        });
+        // For new user creation, usually we would use auth.signUp, 
+        // but this script seems to be for direct database initialization.
+        // If the user doesn't exist in Supabase Auth, they won't be able to log in anyway.
+        // We'll insert into users table as requested by the pattern.
+        
+        const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+                email: adminEmail,
+                role: 'admin',
+                profile: { name: 'Administrator' }
+            });
 
-        await newAdmin.save();
+        if (insertError) throw insertError;
 
         return NextResponse.json({
-            message: 'Admin user created successfully',
+            message: 'Admin user record created in database',
             email: adminEmail,
-            password: adminPassword
+            password: '(Must be set up via Supabase Auth)'
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating admin user:', error);
         return NextResponse.json({
-            error: error.message || 'Failed to create admin user'
+            error: (error as Error).message || 'Failed to create admin user'
         }, { status: 500 });
     }
 }

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
+import { createClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET /api/admin/analytics/users - Get user analytics
@@ -15,42 +14,53 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        await connectDB();
-
         const now = new Date();
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-        // New users over time
-        const newUsersTrend = await User.aggregate([
-            { $match: { createdAt: { $gte: ninetyDaysAgo } } },
-            {
-                $group: {
-                    _id: {
-                        $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-                    },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { _id: 1 } }
-        ]);
+        const supabase = createClient();
 
-        // User growth summary
-        const [totalUsers, newUsers30Days, activeUsers30Days] = await Promise.all([
-            User.countDocuments(),
-            User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
-            User.countDocuments({ lastLoginAt: { $gte: thirtyDaysAgo } })
-        ]);
+        // Fetch users for analytics (using a reasonable limit if needed)
+        const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, created_at, role, last_login_at, is_active');
+
+        if (usersError) {
+            throw usersError;
+        }
+
+        const totalUsers = (users || []).length;
+        const newUsers30Days = (users || []).filter((u: any) => u.created_at && new Date(u.created_at) >= thirtyDaysAgo).length;
+        const activeUsers30Days = (users || []).filter((u: any) => u.last_login_at && new Date(u.last_login_at) >= thirtyDaysAgo).length;
+
+        // New users trend over the last 90 days
+        const newUsersTrendMap: Record<string, number> = {};
+        (users || []).forEach((u: any) => {
+            if (!u.created_at) return;
+            const createdAt = new Date(u.created_at);
+            if (createdAt < ninetyDaysAgo) return;
+            const dateKey = createdAt.toISOString().slice(0, 10);
+            newUsersTrendMap[dateKey] = (newUsersTrendMap[dateKey] || 0) + 1;
+        });
+        const newUsersTrend = Object.entries(newUsersTrendMap)
+            .map(([date, count]) => ({ date, count }))
+            .sort((a, b) => a.date.localeCompare(b.date));
 
         // Users by role
-        const usersByRole = await User.aggregate([
-            { $group: { _id: '$role', count: { $sum: 1 } } }
-        ]);
+        const usersByRoleMap: Record<string, number> = {};
+        (users || []).forEach((u: any) => {
+            const role = u.role || 'unknown';
+            usersByRoleMap[role] = (usersByRoleMap[role] || 0) + 1;
+        });
+        const usersByRole = Object.entries(usersByRoleMap).map(([role, count]) => ({ role, count }));
 
-        // Users by status
-        const usersByStatus = await User.aggregate([
-            { $group: { _id: '$isActive', count: { $sum: 1 } } }
-        ]);
+        // Users by status (active/inactive)
+        const usersByStatusMap: Record<string, number> = {};
+        (users || []).forEach((u: any) => {
+            const status = u.is_active === false ? 'inactive' : 'active';
+            usersByStatusMap[status] = (usersByStatusMap[status] || 0) + 1;
+        });
+        const usersByStatus = Object.entries(usersByStatusMap).map(([status, count]) => ({ status, count }));
 
         return NextResponse.json({
             totalUsers,

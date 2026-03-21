@@ -76,7 +76,7 @@ export function FooterSection() {
                         <h4 className="text-white font-bold font-display mb-8">Product Categories</h4>
                         <ul className="space-y-4">
                             {categories.slice(0, 5).map((category) => (
-                                <li key={category._id}>
+                                <li key={category.id}>
                                     <Link href={`/products?category=${category.name.toLowerCase().replace(' ', '-')}`} className="text-slate-400 hover:text-gold transition-colors inline-flex items-center gap-2 group">
                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-700 group-hover:bg-gold transition-colors"></span>
                                         {category.name}

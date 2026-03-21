@@ -1,30 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import mongoose from 'mongoose';
-
-// Define a flexible settings schema
-const SettingsSchema = new mongoose.Schema({
-    key: { type: String, required: true, unique: true },
-    value: { type: mongoose.Schema.Types.Mixed, required: true },
-    updatedAt: { type: Date, default: Date.now }
-}, { timestamps: true });
-
-const Settings = mongoose.models.Settings || mongoose.model('Settings', SettingsSchema);
+import { createClient } from '@supabase/supabase-js';
+import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET /api/admin/settings - Get all settings
-export async function GET() {
+export async function GET(request: NextRequest) {
+    const authResult = await verifyAdminToken(request);
+    if (authResult.error) {
+        return NextResponse.json(
+            { error: authResult.error },
+            { status: authResult.status }
+        );
+    }
+
     try {
-        await connectDB();
-        const settings = await Settings.find();
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const { data: settings, error } = await supabase
+            .from('site_settings')
+            .select('*');
+
+        if (error) throw error;
 
         // Convert to key-value map
         const settingsMap: Record<string, any> = {};
-        settings.forEach((s: any) => {
+        (settings || []).forEach((s: any) => {
             settingsMap[s.key] = s.value;
         });
 
         return NextResponse.json({ settings: settingsMap });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching settings:', error);
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
     }
@@ -32,8 +38,19 @@ export async function GET() {
 
 // POST /api/admin/settings - Save settings (upsert by key)
 export async function POST(request: NextRequest) {
+    const authResult = await verifyAdminToken(request);
+    if (authResult.error) {
+        return NextResponse.json(
+            { error: authResult.error },
+            { status: authResult.status }
+        );
+    }
+
     try {
-        await connectDB();
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
         const body = await request.json();
         const { section, data } = body;
 
@@ -42,14 +59,20 @@ export async function POST(request: NextRequest) {
         }
 
         // Upsert the settings section
-        await Settings.findOneAndUpdate(
-            { key: section },
-            { key: section, value: data, updatedAt: new Date() },
-            { upsert: true, new: true }
-        );
+        const { error } = await supabase
+            .from('site_settings')
+            .upsert({ 
+                key: section, 
+                value: data, 
+                updated_at: new Date().toISOString() 
+            }, { 
+                onConflict: 'key' 
+            });
+
+        if (error) throw error;
 
         return NextResponse.json({ success: true, message: `${section} settings saved` });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error saving settings:', error);
         return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
     }

@@ -1,8 +1,18 @@
 import { NextRequest } from 'next/server';
-import { verifyAccessToken, TokenPayload } from './jwt';
+import { createClient } from '@supabase/supabase-js';
 
 export interface AuthenticatedRequest extends NextRequest {
-    user?: TokenPayload;
+    user?: {
+        id: string;
+        email: string | undefined;
+        role?: string;
+    };
+}
+
+interface TokenPayload {
+    sub: string;
+    email?: string;
+    role?: string;
 }
 
 /**
@@ -25,7 +35,7 @@ export function extractToken(request: NextRequest): string | null {
 }
 
 /**
- * Verify authentication token and return user payload
+ * Verify authentication token and return user payload using Supabase
  */
 export async function verifyAuth(request: NextRequest): Promise<TokenPayload | null> {
     try {
@@ -35,8 +45,28 @@ export async function verifyAuth(request: NextRequest): Promise<TokenPayload | n
             return null;
         }
 
-        const payload = verifyAccessToken(token);
-        return payload;
+        // Validate environment variables
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+            console.error('Missing required Supabase environment variables');
+            throw new Error('Server configuration error');
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        // Verify the token using Supabase
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return null;
+        }
+
+        return {
+            sub: user.id,
+            email: user.email,
+        };
     } catch (error) {
         console.error('Token verification failed:', error);
         return null;

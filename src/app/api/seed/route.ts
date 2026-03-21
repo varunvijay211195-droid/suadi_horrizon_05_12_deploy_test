@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Brand from '@/lib/db/models/Brand';
-import Category from '@/lib/db/models/Category';
+import { createClient } from '@/lib/supabase/server';
 
 const BRANDS = [
     { name: 'ANC', slug: 'anc', description: 'ANC Heavy Equipment Parts', isFeatured: true, isActive: true },
@@ -27,32 +25,32 @@ const CATEGORIES = [
 
 export async function GET() {
     try {
-        await connectDB();
+        const supabase = createClient();
 
         const brandResults = [];
         for (const brand of BRANDS) {
-            const result = await Brand.findOneAndUpdate(
-                { slug: brand.slug },
-                {
-                    _id: brand.slug, // Explicitly set string ID
-                    ...brand
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-            );
-            brandResults.push(result.name);
+            const { error } = await supabase
+                .from('brands')
+                .upsert(brand, { onConflict: 'slug' });
+
+            if (error) {
+                throw error;
+            }
+
+            brandResults.push(brand.name);
         }
 
         const catResults = [];
         for (const cat of CATEGORIES) {
-            const result = await Category.findOneAndUpdate(
-                { slug: cat.slug },
-                {
-                    _id: cat.slug, // Explicitly set string ID
-                    ...cat
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-            );
-            catResults.push(result.name);
+            const { error } = await supabase
+                .from('categories')
+                .upsert(cat, { onConflict: 'slug' });
+
+            if (error) {
+                throw error;
+            }
+
+            catResults.push(cat.name);
         }
 
         return NextResponse.json({

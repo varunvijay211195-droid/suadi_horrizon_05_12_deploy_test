@@ -30,8 +30,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Comparison functionality
   const { comparisonProducts, addProduct, removeProduct, isFull } = useComparison();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const isInComparison = comparisonProducts.includes(product._id);
-  const inWishlist = isInWishlist(product._id);
+  const isInComparison = comparisonProducts.includes(product.id);
+  const inWishlist = isInWishlist(product.id);
   const canAddToComparison = !isFull || isInComparison;
 
   const cardVariants = {
@@ -74,7 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                inWishlist ? removeFromWishlist(product._id) : addToWishlist(product._id);
+                inWishlist ? removeFromWishlist(product.id) : addToWishlist(product.id);
               }}
               className={`w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all ${inWishlist ? 'bg-red-500 border-red-500 text-white' : 'bg-black/40 border-white/20 text-white hover:text-red-400'
                 }`}
@@ -84,7 +84,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                isInComparison ? removeProduct(product._id) : addProduct(product._id);
+                isInComparison ? removeProduct(product.id) : addProduct(product.id);
               }}
               disabled={!canAddToComparison}
               className={`w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all ${isInComparison ? 'bg-gold border-gold text-navy' : 'bg-black/40 border-white/20 text-white hover:text-gold'
@@ -168,7 +168,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <Button
                 variant="outline"
                 className="w-11 h-11 p-0 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-gold/50"
-                onClick={() => router.push(`/products/${product._id}`)}
+                onClick={() => router.push(`/products/${product.id}`)}
               >
                 <Eye className="w-4 h-4" />
               </Button>

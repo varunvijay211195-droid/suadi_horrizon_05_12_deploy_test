@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from '@/app/providers';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -17,7 +17,7 @@ export default function RecentlyViewedProducts() {
   const [viewedProducts, setViewedProducts] = useState<RecentlyViewedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const { user } = useSession();
+  const { user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 

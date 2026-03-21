@@ -74,7 +74,8 @@ interface NotificationPreferences {
 }
 
 interface User {
-    _id: string;
+    id: string;
+    _id?: string; // Keep for backward compatibility during migration
     email: string;
     name?: string;
     role: string;
@@ -378,7 +379,7 @@ export default function AdminUsersPage() {
                             <tbody className="divide-y divide-white/5">
                                 {filteredUsers.length > 0 ? (
                                     filteredUsers.map((user) => (
-                                        <tr key={user._id} className={`hover:bg-white/[0.03] transition-colors group cursor-pointer ${viewUser?._id === user._id ? 'bg-gold/5 border-l-2 border-l-gold' : ''}`} onClick={() => openUserDetail(user)}>
+                                        <tr key={user.id || user._id} className={`hover:bg-white/[0.03] transition-colors group cursor-pointer ${viewUser?.id === (user.id || user._id) ? 'bg-gold/5 border-l-2 border-l-gold' : ''}`} onClick={() => openUserDetail(user)}>
                                             <td className="px-8 py-7 whitespace-nowrap">
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden group-hover:border-gold/50 transition-all">
@@ -403,7 +404,7 @@ export default function AdminUsersPage() {
                                             <td className="px-8 py-7 whitespace-nowrap">
                                                 <select
                                                     value={user.role}
-                                                    onChange={(e) => { e.stopPropagation(); updateUserRole(user._id, e.target.value); }}
+                                                    onChange={(e) => { e.stopPropagation(); updateUserRole(user.id || user._id || '', e.target.value); }}
                                                     onClick={(e) => e.stopPropagation()}
                                                     className="bg-navy/80 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gold/30 cursor-pointer hover:border-gold/30 transition-all appearance-none text-center min-w-[120px]"
                                                 >
@@ -445,7 +446,7 @@ export default function AdminUsersPage() {
                                                         size="icon"
                                                         className={`w-11 h-11 rounded-2xl transition-all ${user.isActive ? 'text-white/20 hover:text-red-400 hover:bg-red-500/10' : 'text-white/20 hover:text-emerald-400 hover:bg-emerald-500/10'}`}
                                                         title={user.isActive ? 'Deactivate User' : 'Activate User'}
-                                                        onClick={(e) => { e.stopPropagation(); toggleUserStatus(user._id, user.isActive); }}
+                                                        onClick={(e) => { e.stopPropagation(); toggleUserStatus(user.id || user._id || '', user.isActive); }}
                                                     >
                                                         {user.isActive ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
                                                     </Button>
@@ -454,7 +455,7 @@ export default function AdminUsersPage() {
                                                         size="icon"
                                                         className="w-11 h-11 rounded-2xl text-white/20 hover:text-red-500 hover:bg-red-500/20 transition-all"
                                                         title="Delete User"
-                                                        onClick={(e) => { e.stopPropagation(); deleteUser(user._id); }}
+                                                        onClick={(e) => { e.stopPropagation(); deleteUser(user.id || user._id || ''); }}
                                                     >
                                                         <Trash2 className="h-5 w-5" />
                                                     </Button>
@@ -546,10 +547,11 @@ export default function AdminUsersPage() {
                                         >
                                             <tab.icon className="w-4 h-4" />
                                             {tab.label}
-                                            {'count' in tab && tab.count > 0 && (
+                                            {tab.count && tab.count > 0 && (
                                                 <span className={`px-1.5 py-0.5 rounded-md text-[8px] ${detailTab === tab.id ? 'bg-navy/20' : 'bg-white/10'}`}>{tab.count}</span>
                                             )}
                                         </button>
+
                                     ))}
                                 </div>
 
@@ -752,14 +754,14 @@ export default function AdminUsersPage() {
                                     <Button
                                         variant="ghost"
                                         className={`flex-1 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${viewUser.isActive ? 'text-red-400 hover:bg-red-500/10 border border-red-500/20' : 'text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/20'}`}
-                                        onClick={() => { toggleUserStatus(viewUser._id, viewUser.isActive); setViewUser(null); }}
+                                        onClick={() => { toggleUserStatus(viewUser.id || viewUser._id || '', viewUser.isActive); setViewUser(null); }}
                                     >
                                         {viewUser.isActive ? <><Lock className="w-4 h-4 mr-2" />Deactivate</> : <><Unlock className="w-4 h-4 mr-2" />Activate</>}
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 border border-red-500/20"
-                                        onClick={() => { deleteUser(viewUser._id); }}
+                                        onClick={() => { deleteUser(viewUser.id || viewUser._id || ''); }}
                                     >
                                         <Trash2 className="w-4 h-4 mr-2" />Delete
                                     </Button>

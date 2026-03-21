@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
+import { createClient } from '@/lib/supabase/server';
+import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
     try {
-        await connectDB();
         const { token, password } = await req.json();
 
         if (!token || !password) {
@@ -13,22 +12,36 @@ export async function POST(req: NextRequest) {
         }
 
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+        const now = new Date().toISOString();
 
-        const user = await User.findOne({
-            resetPasswordToken: hashedToken,
-            resetPasswordExpires: { $gt: Date.now() }
-        });
+        const supabase = createClient();
 
-        if (!user) {
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('reset_password_token', hashedToken)
+            .gt('reset_password_expires', now)
+            .single();
+
+        if (!user || userError) {
             return NextResponse.json({ message: 'Invalid or expired reset token' }, { status: 400 });
         }
 
-        // Set new password (saved hook handles hashing)
-        user.password = password;
-        user.resetPasswordToken = null;
-        user.resetPasswordExpires = null;
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
-        await user.save();
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({
+                password: hashedPassword,
+                reset_password_token: null,
+                reset_password_expires: null
+            })
+            .eq('id', user.id);
+
+        if (updateError) {
+            throw updateError;
+        }
 
         return NextResponse.json({ message: 'Password has been reset successfully' });
     } catch (error) {

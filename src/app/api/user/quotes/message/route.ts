@@ -1,24 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import QuoteRequest from '@/lib/db/models/QuoteRequest';
-import { verifyAccessToken } from '@/lib/auth/jwt';
+import { createClient } from '@/lib/supabase/server';
+import { verifyAuth } from '@/lib/auth/middleware';
 
 // POST /api/user/quotes/message — user sends a reply
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
-
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+        const payload = await verifyAuth(request);
+        if (!payload) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const token = authHeader.split(' ')[1];
-        let payload: any;
-        try {
-            payload = verifyAccessToken(token);
-        } catch {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
         }
 
         const userId = payload.sub;
@@ -28,24 +17,45 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
         }
 
-        const quote = await QuoteRequest.findById(quoteId);
-        if (!quote) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-        if (quote.userId && quote.userId !== userId) {
+        const supabase = createClient();
+
+        // Find the quote and verify ownership
+        const { data: quote, error: fetchError } = await supabase
+            .from('quote_requests')
+            .select('*')
+            .eq('id', quoteId)
+            .single();
+
+        if (fetchError || !quote) {
+            return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        }
+
+        if (quote.user_id && quote.user_id !== userId) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        quote.messages.push({
+        // Append to messages array
+        const messages = Array.isArray(quote.messages) ? quote.messages : [];
+        const newMessage = {
             sender: 'user',
             text,
-            createdAt: new Date()
-        });
+            createdAt: new Date().toISOString()
+        };
 
-        // Optional: change status to 'pending' if it was responded, to alert admin?
-        // Let's keep status same but admin will see new messages
+        const { data: updated, error: updateError } = await supabase
+            .from('quote_requests')
+            .update({
+                messages: [...messages, newMessage]
+            })
+            .eq('id', quoteId)
+            .select()
+            .single();
 
-        await quote.save();
-        return NextResponse.json(quote);
+        if (updateError) throw updateError;
+
+        return NextResponse.json(updated);
     } catch (error: any) {
+        console.error('Error sending quote message:', error);
         return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 }

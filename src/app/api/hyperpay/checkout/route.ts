@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Product from '@/lib/db/models/Product';
+import { createClient } from '@/lib/supabase/server';
 
 // Map payment brands to their respective entity IDs
 function getEntityId(paymentBrand: string): string {
@@ -16,8 +15,9 @@ function getEntityId(paymentBrand: string): string {
 }
 
 export async function POST(request: NextRequest) {
+    const supabase = createClient();
+
     try {
-        await connectDB();
         const { items, shippingAddress, shippingMethod, paymentBrand } = await request.json();
 
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -29,10 +29,16 @@ export async function POST(request: NextRequest) {
         const orderItems = [];
 
         for (const item of items) {
-            const dbProduct = await Product.findById(item._id);
-            if (!dbProduct) {
+            const { data: dbProduct, error: productError } = await supabase
+                .from('products')
+                .select('id, name, price')
+                .eq('id', item._id)
+                .single();
+
+            if (productError || !dbProduct) {
                 return NextResponse.json({ error: `Product ${item._id} not found` }, { status: 404 });
             }
+
             subtotal += dbProduct.price * item.quantity;
             orderItems.push({
                 productId: item._id,
@@ -111,8 +117,9 @@ export async function POST(request: NextRequest) {
                 { status: 500 }
             );
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('HyperPay checkout error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

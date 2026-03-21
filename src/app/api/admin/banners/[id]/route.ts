@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Banner from '@/lib/db/models/Banner';
+import { createClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // PATCH /api/admin/banners/[id] - Update banner
@@ -18,18 +17,23 @@ export async function PATCH(
     }
 
     try {
-        await connectDB();
-
         const { id } = await context.params;
         const body = await request.json();
 
-        const banner = await Banner.findByIdAndUpdate(id, body, { new: true });
+        const supabase = createClient();
 
-        if (!banner) {
-            return NextResponse.json(
-                { error: 'Banner not found' },
-                { status: 404 }
-            );
+        const { data: banner, error } = await supabase
+            .from('banners')
+            .update(body)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116' || error.code === '404') {
+                return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
+            }
+            throw error;
         }
 
         return NextResponse.json(banner);
@@ -57,16 +61,22 @@ export async function DELETE(
     }
 
     try {
-        await connectDB();
-
         const { id } = await context.params;
-        const banner = await Banner.findByIdAndDelete(id);
 
-        if (!banner) {
-            return NextResponse.json(
-                { error: 'Banner not found' },
-                { status: 404 }
-            );
+        const supabase = createClient();
+
+        const { data: banner, error } = await supabase
+            .from('banners')
+            .delete()
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116' || error.code === '404') {
+                return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
+            }
+            throw error;
         }
 
         return NextResponse.json({ message: 'Banner deleted successfully', banner });

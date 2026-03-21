@@ -40,9 +40,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 title,
                 description,
                 url: `${baseUrl}/products/${id}`,
-                images: product?.image ? [
+                images: product?.image?.url ? [
                     {
-                        url: product.image,
+                        url: product.image.url,
                         width: 1200,
                         height: 1200,
                         alt: product.name,
@@ -63,7 +63,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 card: 'summary_large_image',
                 title,
                 description,
-                images: product?.image ? [product.image] : [],
+                images: product?.image?.url ? [product.image.url] : [],
             },
             alternates: {
                 canonical: `${baseUrl}/products/${id}`,
@@ -111,7 +111,7 @@ export async function generateJsonLd({ params }: Props) {
                 url: `${baseUrl}/products/${id}`,
                 priceCurrency: 'USD',
                 price: product.price,
-                availability: product.inStock
+                availability: product.in_stock
                     ? 'https://schema.org/InStock'
                     : 'https://schema.org/OutOfStock',
                 seller: {

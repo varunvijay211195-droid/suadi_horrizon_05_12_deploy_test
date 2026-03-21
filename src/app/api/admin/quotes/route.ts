@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import QuoteRequest from '@/lib/db/models/QuoteRequest';
+import { createClient } from '@supabase/supabase-js';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
@@ -13,32 +12,45 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        await connectDB();
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
         const limit = parseInt(searchParams.get('limit') || '50');
         const page = parseInt(searchParams.get('page') || '1');
-        const skip = (page - 1) * limit;
+        const offset = (page - 1) * limit;
 
-        const query: any = {};
+        let query = supabase
+            .from('quote_requests')
+            .select('*', { count: 'exact' });
+
         if (status && status !== 'all') {
-            query.status = status;
+            query = query.eq('status', status);
         }
 
-        const [quotes, total] = await Promise.all([
-            QuoteRequest.find(query)
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(limit),
-            QuoteRequest.countDocuments(query)
-        ]);
+        const { data: quotes, count: total, error: fetchError } = await query
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+        if (fetchError) throw fetchError;
 
         return NextResponse.json({
-            quotes,
+            quotes: (quotes || []).map(q => ({
+                ...q,
+                _id: q.id,
+                createdAt: q.created_at,
+                updatedAt: q.updated_at,
+                companyName: q.company_name,
+                contactPerson: q.contact_person,
+                quotedPrice: q.quoted_price,
+                validUntil: q.valid_until,
+                adminResponse: q.admin_response
+            })),
             total,
             page,
-            totalPages: Math.ceil(total / limit)
+            totalPages: Math.ceil((total || 0) / limit)
         });
     } catch (error: any) {
         console.error('Error fetching quotes:', error);
@@ -59,7 +71,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     try {
-        await connectDB();
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
         const body = await request.json();
         const { id, status, adminResponse, quotedPrice, validUntil } = body;
 
@@ -70,39 +85,59 @@ export async function PATCH(request: NextRequest) {
             );
         }
 
-        const updateFields: any = { status, adminResponse };
-        if (quotedPrice !== undefined) updateFields.quotedPrice = quotedPrice;
-        if (validUntil !== undefined) updateFields.validUntil = new Date(validUntil);
+        // Fetch current quote to update messages array
+        const { data: quote, error: getError } = await supabase
+            .from('quote_requests')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-        const quote = await QuoteRequest.findById(id);
-        if (quote && adminResponse) {
-            quote.messages.push({
-                sender: 'admin',
-                text: adminResponse,
-                createdAt: new Date()
-            });
-            quote.status = status;
-            quote.adminResponse = adminResponse;
-            if (quotedPrice !== undefined) quote.quotedPrice = quotedPrice;
-            if (validUntil !== undefined) quote.validUntil = new Date(validUntil);
-            await quote.save();
-            return NextResponse.json(quote);
-        }
-
-        const updatedQuote = await QuoteRequest.findByIdAndUpdate(
-            id,
-            updateFields,
-            { new: true }
-        );
-
-        if (!quote) {
+        if (getError || !quote) {
             return NextResponse.json(
                 { error: 'Quote request not found' },
                 { status: 404 }
             );
         }
 
-        return NextResponse.json(quote);
+        const messages = Array.isArray(quote.messages) ? [...quote.messages] : [];
+        if (adminResponse) {
+            messages.push({
+                sender: 'admin',
+                text: adminResponse,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        const updateData: any = {
+            status,
+            messages,
+            admin_response: adminResponse || quote.admin_response,
+            updated_at: new Date().toISOString()
+        };
+
+        if (quotedPrice !== undefined) updateData.quoted_price = quotedPrice;
+        if (validUntil !== undefined) updateData.valid_until = new Date(validUntil).toISOString();
+
+        const { data: updatedQuote, error: updateError } = await supabase
+            .from('quote_requests')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (updateError) throw updateError;
+
+        return NextResponse.json({
+            ...updatedQuote,
+            _id: updatedQuote.id,
+            createdAt: updatedQuote.created_at,
+            updatedAt: updatedQuote.updated_at,
+            companyName: updatedQuote.company_name,
+            contactPerson: updatedQuote.contact_person,
+            quotedPrice: updatedQuote.quoted_price,
+            validUntil: updatedQuote.valid_until,
+            adminResponse: updatedQuote.admin_response
+        });
     } catch (error: any) {
         console.error('Error updating quote:', error);
         return NextResponse.json(

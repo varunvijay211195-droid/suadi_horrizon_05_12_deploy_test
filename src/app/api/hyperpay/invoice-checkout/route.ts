@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Invoice from '@/lib/db/models/Invoice';
+import { createClient } from '@/lib/supabase/server';
 
 // Map payment brands to their respective entity IDs
 function getEntityId(paymentBrand: string): string {
@@ -16,15 +15,21 @@ function getEntityId(paymentBrand: string): string {
 
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
+        const supabase = createClient();
         const { invoiceId, paymentBrand } = await request.json();
 
         if (!invoiceId) {
             return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
         }
 
-        const invoice = await Invoice.findById(invoiceId);
-        if (!invoice) {
+        const { data: invoice, error } = await supabase
+            .from('invoices')
+            .select('*')
+            .eq('id', invoiceId)
+            .single();
+
+        if (error || !invoice) {
+            console.error('Invoice fetch error:', error);
             return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
         }
 
@@ -41,7 +46,7 @@ export async function POST(request: NextRequest) {
         params.append('amount', invoice.totalAmount.toFixed(2));
         params.append('currency', invoice.currency || 'SAR');
         params.append('paymentType', 'DB');
-        params.append('merchantTransactionId', `INV-${invoice._id}`); // Identify this as an invoice payment
+        params.append('merchantTransactionId', `INV-${invoice.id}`); // Identify this as an invoice payment
 
         // Customer info
         if (invoice.customer?.email) {

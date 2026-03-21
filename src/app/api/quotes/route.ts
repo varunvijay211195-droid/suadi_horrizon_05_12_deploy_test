@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import QuoteRequest from '@/lib/db/models/QuoteRequest';
+import { createClient } from '@/lib/supabase/server';
 import { notifyQuoteRequest } from '@/lib/notifications/adminNotifications';
 import { verifyAccessToken } from '@/lib/auth/jwt';
 
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
+        const supabase = createClient();
         const body = await request.json();
 
         const { companyName, contactPerson, phone, email, projectType, items, quantities, timeline, notes } = body;
@@ -23,8 +22,8 @@ export async function POST(request: NextRequest) {
             } else {
                 console.log('Quote Request: No Bearer token found in header');
             }
-        } catch (e: any) {
-            console.error('Quote Request: Token verification failed:', e.message);
+        } catch (error: unknown) {
+            console.error('Quote Request: Token verification failed:', error);
             // Token invalid or missing, continue as guest
         }
 
@@ -35,29 +34,41 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const quoteRequest = await QuoteRequest.create({
-            userId,
-            companyName,
-            contactPerson,
-            phone,
-            email,
-            projectType,
-            items,
-            quantities,
-            timeline,
-            notes,
-            status: 'pending'
-        });
+        const { data: quoteRequest, error } = await supabase
+            .from('quote_requests')
+            .insert({
+                user_id: userId,
+                company_name: companyName,
+                contact_person: contactPerson,
+                phone,
+                email,
+                project_type: projectType,
+                items,
+                quantities,
+                timeline,
+                notes,
+                status: 'pending'
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating quote request:', error);
+            return NextResponse.json(
+                { error: 'Failed to create quote request' },
+                { status: 500 }
+            );
+        }
 
         // Trigger admin notification in background (non-blocking)
         notifyQuoteRequest(companyName, contactPerson, { email, phone, items })
             .catch(err => console.error('Background notification failed:', err));
 
         return NextResponse.json(
-            { message: 'Quote request submitted successfully', id: quoteRequest._id },
+            { message: 'Quote request submitted successfully', id: quoteRequest.id },
             { status: 201 }
         );
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error submitting quote request:', error);
         return NextResponse.json(
             { error: 'Failed to submit quote request' },

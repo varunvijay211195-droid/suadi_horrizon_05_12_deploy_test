@@ -22,33 +22,57 @@ function CartContent() {
     const isSuccess = searchParams.get('success') === 'true';
 
     useEffect(() => {
-        setMounted(true);
-        const items = getCart();
-        setCartItems(items);
+        const loadCart = async () => {
+            setMounted(true);
+            try {
+                const items = await getCart();
+                setCartItems(items);
+            } catch (error) {
+                console.error('Failed to load cart:', error);
+                setCartItems([]);
+            }
+        };
+
+        loadCart();
 
         if (isSuccess) {
-            toast.success('Order Placed Successfully!', {
-                description: 'Your order has been confirmed. You will receive a confirmation email shortly.',
-            });
-            clearCart();
-            setCartItems([]);
-            // Clean up the URL
-            window.history.replaceState({}, '', '/cart');
+            const clearAndNotify = async () => {
+                toast.success('Order Placed Successfully!', {
+                    description: 'Your order has been confirmed. You will receive a confirmation email shortly.',
+                });
+                await clearCart();
+                setCartItems([]);
+                // Clean up the URL
+                window.history.replaceState({}, '', '/cart');
+            };
+            clearAndNotify();
         }
     }, [isSuccess]);
 
-    const handleRemoveItem = (itemId: string) => {
-        removeFromCart(itemId);
-        setCartItems(getCart());
-        toast.success('Item Removed', {
-            description: 'Item has been removed from your cart',
-        });
+    const handleRemoveItem = async (itemId: string) => {
+        try {
+            await removeFromCart(itemId);
+            const updatedItems = await getCart();
+            setCartItems(updatedItems);
+            toast.success('Item Removed', {
+                description: 'Item has been removed from your cart',
+            });
+        } catch (error) {
+            console.error('Failed to remove item:', error);
+            toast.error('Failed to remove item');
+        }
     };
 
-    const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    const handleUpdateQuantity = async (itemId: string, quantity: number) => {
         if (quantity > 0) {
-            updateCartItem(itemId, quantity);
-            setCartItems(getCart());
+            try {
+                await updateCartItem(itemId, quantity);
+                const updatedItems = await getCart();
+                setCartItems(updatedItems);
+            } catch (error) {
+                console.error('Failed to update quantity:', error);
+                toast.error('Failed to update quantity');
+            }
         }
     };
 
@@ -135,7 +159,7 @@ function CartContent() {
                             <AnimatePresence mode="popLayout">
                                 {cartItems.map((item) => (
                                     <motion.div
-                                        key={item._id}
+                                        key={item.product_id}
                                         layout
                                         variants={itemVariants}
                                         exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
@@ -158,7 +182,7 @@ function CartContent() {
                                                     <div>
                                                         <h3
                                                             className="text-xl md:text-2xl font-black text-white hover:text-gold cursor-pointer transition-colors mb-2"
-                                                            onClick={() => router.push(`/products/${item._id}`)}
+                                                            onClick={() => router.push(`/products/${item.product_id}`)}
                                                             style={{ fontFamily: 'var(--font-display)' }}
                                                         >
                                                             {item.name}
@@ -184,7 +208,7 @@ function CartContent() {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            onClick={() => handleUpdateQuantity(item._id, item.quantity - 1)}
+                                                            onClick={() => handleUpdateQuantity(item.product_id, item.quantity - 1)}
                                                             className="h-10 w-10 rounded-xl text-white/40 hover:text-gold hover:bg-gold/10"
                                                         >
                                                             <Minus className="h-4 w-4" />
@@ -195,7 +219,7 @@ function CartContent() {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            onClick={() => handleUpdateQuantity(item._id, item.quantity + 1)}
+                                                            onClick={() => handleUpdateQuantity(item.product_id, item.quantity + 1)}
                                                             className="h-10 w-10 rounded-xl text-white/40 hover:text-gold hover:bg-gold/10"
                                                         >
                                                             <Plus className="h-4 w-4" />
@@ -205,7 +229,7 @@ function CartContent() {
                                                     {/* Actions */}
                                                     <Button
                                                         variant="ghost"
-                                                        onClick={() => handleRemoveItem(item._id)}
+                                                        onClick={() => handleRemoveItem(item.product_id)}
                                                         className="text-[10px] font-black text-red-400/60 hover:text-red-400 uppercase tracking-[0.2em] hover:bg-red-500/5 group"
                                                     >
                                                         <Trash2 className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />

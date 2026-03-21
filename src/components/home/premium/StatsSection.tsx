@@ -1,30 +1,30 @@
 'use client';
 
-import { motion, useInView } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
+import { motion, useInView, animate } from "framer-motion";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 function Counter({ value, suffix, inView }: { value: number; suffix: string; inView: boolean }) {
     const [count, setCount] = useState(0);
+    const countRef = useRef(0);
 
     useEffect(() => {
         if (!inView) return;
 
-        let start = 0;
-        const duration = 2000;
-        const increment = value / (duration / 16);
-
-        const timer = setInterval(() => {
-            start += increment;
-            if (start >= value) {
-                setCount(value);
-                clearInterval(timer);
-            } else {
-                setCount(Math.floor(start));
+        // Ensure we start from 0 for the count-up effect
+        const controls = animate(0, value, {
+            duration: 2.5,
+            ease: "easeOut",
+            onUpdate: (latest) => {
+                const rounded = Math.floor(latest);
+                if (rounded !== countRef.current) {
+                    setCount(rounded);
+                    countRef.current = rounded;
+                }
             }
-        }, 16);
+        });
 
-        return () => clearInterval(timer);
+        return () => controls.stop();
     }, [inView, value]);
 
     return (
@@ -53,12 +53,12 @@ export function StatsSection() {
             .catch(() => { });
     }, []);
 
-    const stats = [
+    const stats = useMemo(() => [
         { value: dynamicStats?.yearsExperience ?? 15, suffix: "+", label: t('home.stats.experience'), detail: t('home.stats.experience_detail') },
         { value: dynamicStats?.satisfiedClients ?? 1000, suffix: "+", label: t('home.stats.clients'), detail: t('home.stats.clients_detail') },
         { value: dynamicStats?.partsAvailable ?? 720, suffix: "+", label: t('home.stats.products'), detail: t('home.stats.products_detail') },
         { value: dynamicStats?.onTimeDelivery ?? 98, suffix: "%", label: t('home.stats.delivery'), detail: t('home.stats.delivery_detail') },
-    ];
+    ], [dynamicStats, t]);
 
     return (
         <section

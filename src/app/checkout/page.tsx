@@ -69,15 +69,19 @@ export default function CheckoutPage() {
     const [preparingPayment, setPreparingPayment] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
-        setOrderId(Math.random().toString(36).substr(2, 9).toUpperCase());
-        const items = getCart();
-        if (items.length === 0 && mounted) {
-            router.push('/products');
-            return;
-        }
-        setCartItems(items);
-    }, [router, mounted]);
+        const loadCart = async () => {
+            setMounted(true);
+            setOrderId(Math.random().toString(36).substr(2, 9).toUpperCase());
+            const items = await getCart();
+            if (items.length === 0 && mounted) {
+                router.push('/products');
+                return;
+            }
+            setCartItems(items);
+        };
+        
+        loadCart();
+    }, [router]);
 
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shipping = shippingMethod === 'express' ? 15 : shippingMethod === 'overnight' ? 25 : 0;
@@ -135,7 +139,7 @@ export default function CheckoutPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     items: cartItems.map(item => ({
-                        _id: item._id,
+                        _id: item.product_id || item.id,
                         quantity: item.quantity,
                     })),
                     shippingAddress,

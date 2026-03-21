@@ -34,10 +34,10 @@ const sectionComponents: Record<string, React.ComponentType> = {
 };
 
 interface SectionConfig {
-    id: string;
+    section_id: string;
     label: string;
     visible: boolean;
-    order: number;
+    sort_order: number;
 }
 
 export default function Home() {
@@ -51,7 +51,7 @@ export default function Home() {
                     setVisibleSections(
                         config.sections
                             .filter((s: SectionConfig) => s.visible)
-                            .sort((a: SectionConfig, b: SectionConfig) => a.order - b.order)
+                            .sort((a: SectionConfig, b: SectionConfig) => a.sort_order - b.sort_order)
                     );
                 }
             })
@@ -63,7 +63,7 @@ export default function Home() {
 
     // While loading or on error, show all sections (default behavior)
     const sectionsToRender = visibleSections
-        ? visibleSections.map(s => s.id)
+        ? visibleSections.map(s => s.section_id)
         : Object.keys(sectionComponents);
 
     return (

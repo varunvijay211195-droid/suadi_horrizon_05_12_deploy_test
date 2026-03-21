@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
-import { Plus, Edit2, Trash2, X, Loader2, Image as ImageIcon, Link, Calendar, Eye, EyeOff, Layers, Zap } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Loader2, Image as ImageIcon, Link, Calendar, Eye, EyeOff, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Banner {
@@ -41,6 +41,7 @@ export default function AdminBannersPage() {
     const [formData, setFormData] = useState<BannerForm>(defaultForm);
 
     const getHeaders = (): HeadersInit => {
+        if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
         const token = localStorage.getItem('accessToken');
         return { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
     };
@@ -65,7 +66,16 @@ export default function AdminBannersPage() {
     const openAdd = () => { setEditingBanner(null); setFormData(defaultForm); setShowModal(true); };
     const openEdit = (b: Banner) => {
         setEditingBanner(b);
-        setFormData({ title: b.title, subtitle: b.subtitle, image: b.image, link: b.link, ctaText: b.ctaText, position: b.position, startDate: b.startDate || '', endDate: b.endDate || '' });
+        setFormData({
+            title: b.title,
+            subtitle: b.subtitle,
+            image: b.image,
+            link: b.link,
+            ctaText: b.ctaText,
+            position: b.position,
+            startDate: b.startDate ? new Date(b.startDate).toISOString().split('T')[0] : '',
+            endDate: b.endDate ? new Date(b.endDate).toISOString().split('T')[0] : ''
+        });
         setShowModal(true);
     };
 

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Order from '@/lib/db/models/Order';
-import Product from '@/lib/db/models/Product';
+import { createClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET /api/admin/analytics/sales - Get sales analytics
@@ -16,8 +14,6 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        await connectDB();
-
         const { searchParams } = new URL(request.url);
         const period = searchParams.get('period') || '30days';
 
@@ -25,82 +21,104 @@ export async function GET(request: NextRequest) {
             '7days': 7,
             '30days': 30,
             '90days': 90,
-            'year': 365
+            year: 365
         };
         const days = daysMap[period] || 30;
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
-        // Sales trend
-        const salesTrend = await Order.aggregate([
-            { $match: { createdAt: { $gte: startDate }, status: { $ne: 'cancelled' } } },
-            {
-                $group: {
-                    _id: {
-                        $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-                    },
-                    sales: { $sum: '$totalAmount' },
-                    orders: { $sum: 1 }
-                }
-            },
-            { $sort: { _id: 1 } }
-        ]);
+        const supabase = createClient();
+
+        const { data: orders, error: ordersError } = await supabase
+            .from('orders')
+            .select('created_at, total_amount, items')
+            .gte('created_at', startDate.toISOString())
+            .neq('status', 'cancelled');
+
+        if (ordersError) {
+            throw ordersError;
+        }
+
+        // Convert to normalized structure
+        const normalizedOrders = (orders || []).map((o: any) => ({
+            createdAt: new Date(o.created_at),
+            totalAmount: o.total_amount || 0,
+            items: o.items || []
+        }));
+
+        // Sales summary
+        const totalOrders = normalizedOrders.length;
+        const totalRevenue = normalizedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+
+        // Sales trend per day
+        const salesTrendMap: Record<string, { sales: number; orders: number }> = {};
+        normalizedOrders.forEach((order) => {
+            const dateKey = order.createdAt.toISOString().slice(0, 10);
+            if (!salesTrendMap[dateKey]) {
+                salesTrendMap[dateKey] = { sales: 0, orders: 0 };
+            }
+            salesTrendMap[dateKey].sales += order.totalAmount;
+            salesTrendMap[dateKey].orders += 1;
+        });
+
+        const salesTrend = Object.entries(salesTrendMap)
+            .map(([date, stats]) => ({ date, ...stats }))
+            .sort((a, b) => a.date.localeCompare(b.date));
 
         // Top products
-        const topProducts = await Order.aggregate([
-            { $match: { createdAt: { $gte: startDate }, status: { $ne: 'cancelled' } } },
-            { $unwind: '$items' },
-            {
-                $group: {
-                    _id: '$items.productId',
-                    name: { $first: '$items.name' },
-                    quantity: { $sum: '$items.quantity' },
-                    revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
+        const productSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
+        normalizedOrders.forEach((order) => {
+            order.items.forEach((item: any) => {
+                const id = item.product;
+                if (!id) return;
+                if (!productSales[id]) {
+                    productSales[id] = { name: item.name || 'Unknown', quantity: 0, revenue: 0 };
                 }
-            },
-            { $sort: { revenue: -1 } },
-            { $limit: 10 }
-        ]);
+                productSales[id].quantity += item.quantity || 0;
+                productSales[id].revenue += (item.quantity || 0) * (item.price || 0);
+            });
+        });
+
+        const topProducts = Object.entries(productSales)
+            .map(([productId, stats]) => ({ productId, ...stats }))
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 10);
 
         // Category breakdown
-        const categoryBreakdown = await Order.aggregate([
-            { $match: { createdAt: { $gte: startDate }, status: { $ne: 'cancelled' } } },
-            { $unwind: '$items' },
-            {
-                $lookup: {
-                    from: 'products',
-                    localField: 'items.productId',
-                    foreignField: '_id',
-                    as: 'product'
-                }
-            },
-            { $unwind: '$product' },
-            {
-                $group: {
-                    _id: '$product.category',
-                    revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
-                    orders: { $sum: 1 }
-                }
-            },
-            { $sort: { revenue: -1 } }
-        ]);
+        const productIds = topProducts.map((p) => p.productId);
+        let categoryBreakdown: Array<{ category: string; revenue: number; orders: number }> = [];
 
-        // Summary stats
-        const summary = await Order.aggregate([
-            { $match: { createdAt: { $gte: startDate }, status: { $ne: 'cancelled' } } },
-            {
-                $group: {
-                    _id: null,
-                    totalRevenue: { $sum: '$totalAmount' },
-                    totalOrders: { $sum: 1 },
-                    avgOrderValue: { $avg: '$totalAmount' }
-                }
+        if (productIds.length) {
+            const { data: products, error: productsError } = await supabase
+                .from('products')
+                .select('id, category')
+                .in('id', productIds);
+
+            if (productsError) {
+                throw productsError;
             }
-        ]);
+
+            const categoryRevenue: Record<string, { revenue: number; orders: number }> = {};
+
+            topProducts.forEach((p) => {
+                const product = (products || []).find((prod: any) => prod.id === p.productId);
+                const category = product?.category || 'Uncategorized';
+                if (!categoryRevenue[category]) {
+                    categoryRevenue[category] = { revenue: 0, orders: 0 };
+                }
+                categoryRevenue[category].revenue += p.revenue;
+                categoryRevenue[category].orders += 1;
+            });
+
+            categoryBreakdown = Object.entries(categoryRevenue)
+                .map(([category, stats]) => ({ category, ...stats }))
+                .sort((a, b) => b.revenue - a.revenue);
+        }
 
         return NextResponse.json({
             period,
-            summary: summary[0] || { totalRevenue: 0, totalOrders: 0, avgOrderValue: 0 },
+            summary: { totalRevenue, totalOrders, avgOrderValue },
             salesTrend,
             topProducts,
             categoryBreakdown

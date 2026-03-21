@@ -1,0 +1,5 @@
+{
+    "editor.renderControlCharacters": false,
+    "editor.unicodeHighlight.ambiguousCharacters": false,
+    "workbench.browser.dataStorage": "workspace"
+}

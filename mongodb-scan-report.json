@@ -1,0 +1,660 @@
+{
+  "src\\api\\admin.ts": [
+    {
+      "pattern": "\\w+\\.delete\\(",
+      "match": "api.delete(",
+      "line": 96,
+      "context": "await api.delete(`/admin/products/${productId}`);"
+    },
+    {
+      "pattern": "\\w+\\.delete\\(",
+      "match": "api.delete(",
+      "line": 96,
+      "context": "await api.delete(`/admin/products/${productId}`);"
+    }
+  ],
+  "src\\api\\api.ts": [
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "axios.create(",
+      "line": 16,
+      "context": "const localApi = axios.create({"
+    },
+    {
+      "pattern": "\\w+\\.delete\\(",
+      "match": "apiInstance.delete(",
+      "line": 159,
+      "context": "return apiInstance.delete(url, config);"
+    }
+  ],
+  "src\\api\\cart.ts": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "cart.find(",
+      "line": 73,
+      "context": "const existingItem = cart.find((i: CartItem) => i.product_id === item.product_id);"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "cart.find(",
+      "line": 73,
+      "context": "const existingItem = cart.find((i: CartItem) => i.product_id === item.product_id);"
+    }
+  ],
+  "src\\api\\news.ts": [
+    {
+      "pattern": "\\w+\\.delete\\(",
+      "match": "api.delete(",
+      "line": 93,
+      "context": "await api.delete(`/api/news/${id}`);"
+    }
+  ],
+  "src\\api\\user.ts": [
+    {
+      "pattern": "\\w+\\.delete\\(",
+      "match": "api.delete(",
+      "line": 113,
+      "context": "await api.delete(`/api/users/addresses/${id}`);"
+    },
+    {
+      "pattern": "\\w+\\.delete\\(",
+      "match": "api.delete(",
+      "line": 113,
+      "context": "await api.delete(`/api/users/addresses/${id}`);"
+    }
+  ],
+  "src\\app\\admin\\homepage\\page.tsx": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "allProducts.find(",
+      "line": 127,
+      "context": ".map(id => allProducts.find(p => p._id === id))"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "selectedProducts.find(",
+      "line": 166,
+      "context": "if (selectedProducts.find(p => p._id === product._id)) {"
+    }
+  ],
+  "src\\app\\admin\\page.tsx": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "breakdown.find(",
+      "line": 199,
+      "context": "value: breakdown.find(b => b._id === s)?.count || 0,"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "donutSegs.find(",
+      "line": 206,
+      "context": "const hoveredSeg = hoveredStatus ? donutSegs.find(s => s.status === hoveredStatus) : null;"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "donutSegs.find(",
+      "line": 206,
+      "context": "const hoveredSeg = hoveredStatus ? donutSegs.find(s => s.status === hoveredStatus) : null;"
+    }
+  ],
+  "src\\app\\api\\cookie-consent\\export\\route.ts": [
+    {
+      "pattern": "import.*mongodb",
+      "match": "import dbConnect from '@/lib/db/mongodb",
+      "line": 2,
+      "context": "import dbConnect from '@/lib/db/mongodb';"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "CookieConsentRecord.find(",
+      "line": 12,
+      "context": "const records = await CookieConsentRecord.find()"
+    }
+  ],
+  "src\\app\\checkout\\page.tsx": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "paymentMethods.find(",
+      "line": 443,
+      "context": "const method = paymentMethods.find(m => m.id === paymentMethod);"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "paymentMethods.find(",
+      "line": 443,
+      "context": "const method = paymentMethods.find(m => m.id === paymentMethod);"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "paymentMethods.find(",
+      "line": 443,
+      "context": "const method = paymentMethods.find(m => m.id === paymentMethod);"
+    }
+  ],
+  "src\\app\\installation\\page.tsx": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "serviceAreas.find(",
+      "line": 184,
+      "context": "{formData.city && serviceAreas.find(a => a.city === formData.city)?.regions.map(r => ("
+    }
+  ],
+  "src\\app\\news\\page.tsx": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "filteredArticles.find(",
+      "line": 91,
+      "context": "const featuredArticle = filteredArticles.find(a => a.featured) || filteredArticles[0];"
+    }
+  ],
+  "src\\components\\configurator\\EquipmentSelector.tsx": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "hierarchy.find(",
+      "line": 36,
+      "context": "? hierarchy.find((t: any) => t.id === selectedType)?.brands || []"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "availableBrands.find(",
+      "line": 39,
+      "context": "? availableBrands.find((b: any) => b.id === selectedBrand)?.models || []"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "availableModels.find(",
+      "line": 42,
+      "context": "? availableModels.find((m: any) => m.id === selectedModel)?.yearRanges || []"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "hierarchy.find(",
+      "line": 36,
+      "context": "? hierarchy.find((t: any) => t.id === selectedType)?.brands || []"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "availableBrands.find(",
+      "line": 39,
+      "context": "? availableBrands.find((b: any) => b.id === selectedBrand)?.models || []"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "availableModels.find(",
+      "line": 42,
+      "context": "? availableModels.find((m: any) => m.id === selectedModel)?.yearRanges || []"
+    }
+  ],
+  "src\\components\\home\\FeaturedProducts.tsx": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "allProds.find(",
+      "line": 48,
+      "context": ".map((id: string) => allProds.find((p: Product) => p._id === id))"
+    }
+  ],
+  "src\\hooks\\useAdminNotifications.ts": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "data.find(",
+      "line": 70,
+      "context": "const wasUnread = prev.data.find(n => n._id === id)?.isRead === false;"
+    },
+    {
+      "pattern": "\\w+\\.delete\\(",
+      "match": "notificationsApi.delete(",
+      "line": 68,
+      "context": "await notificationsApi.delete(id);"
+    }
+  ],
+  "src\\lib\\api\\admin\\notifications.ts": [
+    {
+      "pattern": "\\w+\\.delete\\(",
+      "match": "axios.delete(",
+      "line": 25,
+      "context": "const res = await axios.delete(`/api/admin/notifications/${id}`, { headers: getHeaders() });"
+    }
+  ],
+  "src\\lib\\comparison.ts": [
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "products.find(",
+      "line": 118,
+      "context": "const lowestPriceProduct = products.find(p => p.price === lowestPrice);"
+    },
+    {
+      "pattern": "\\w+\\.find\\(",
+      "match": "products.find(",
+      "line": 118,
+      "context": "const lowestPriceProduct = products.find(p => p.price === lowestPrice);"
+    }
+  ],
+  "src\\lib\\database\\schemas\\notifications.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import { Schema, model, Document } from 'mongoose",
+      "line": 1,
+      "context": "import { Schema, model, Document } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\Banner.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\Brand.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema, Model } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema, Model } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\Category.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema, Model } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema, Model } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\ChatMessage.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema, Model } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema, Model } from 'mongoose';"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 4,
+      "context": "sender: mongoose.Types.ObjectId;"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 4,
+      "context": "sender: mongoose.Types.ObjectId;"
+    }
+  ],
+  "src\\lib\\db\\models\\Complaint.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema } from 'mongoose';"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 4,
+      "context": "user: mongoose.Types.ObjectId;"
+    }
+  ],
+  "src\\lib\\db\\models\\CookieConsentRecord.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Schema, Document } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Schema, Document } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\CookieSettings.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Schema, Document } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Schema, Document } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\HomepageConfig.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Schema, Document } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Schema, Document } from 'mongoose';"
+    },
+    {
+      "pattern": "\\w+\\.findOne\\(",
+      "match": "this.findOne(",
+      "line": 84,
+      "context": "let config = await this.findOne();"
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "this.create(",
+      "line": 86,
+      "context": "config = await this.create({"
+    }
+  ],
+  "src\\lib\\db\\models\\Invoice.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema, Model } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema, Model } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\News.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema, Model } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema, Model } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\Notification.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\Order.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema, Model } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema, Model } from 'mongoose';"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 4,
+      "context": "product: string; // Changed from mongoose.Types.ObjectId to match Product._id"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 4,
+      "context": "product: string; // Changed from mongoose.Types.ObjectId to match Product._id"
+    }
+  ],
+  "src\\lib\\db\\models\\Product.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema, Model } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema, Model } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\ProductView.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Schema, Document, Model } from 'mongoose",
+      "line": 2,
+      "context": "import mongoose, { Schema, Document, Model } from 'mongoose';"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 5,
+      "context": "userId?: mongoose.Types.ObjectId;"
+    }
+  ],
+  "src\\lib\\db\\models\\Promotion.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\QuoteRequest.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema } from 'mongoose';"
+    }
+  ],
+  "src\\lib\\db\\models\\ServiceRequest.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Document, Schema } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Document, Schema } from 'mongoose';"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 4,
+      "context": "user: mongoose.Types.ObjectId;"
+    }
+  ],
+  "src\\lib\\db\\models\\User.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose, { Schema, Document, Model } from 'mongoose",
+      "line": 1,
+      "context": "import mongoose, { Schema, Document, Model } from 'mongoose';"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 5,
+      "context": "_id: mongoose.Types.ObjectId;"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 5,
+      "context": "_id: mongoose.Types.ObjectId;"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 5,
+      "context": "_id: mongoose.Types.ObjectId;"
+    },
+    {
+      "pattern": "mongoose\\.Types\\.ObjectId",
+      "match": "mongoose.Types.ObjectId",
+      "line": 5,
+      "context": "_id: mongoose.Types.ObjectId;"
+    }
+  ],
+  "src\\lib\\db\\mongodb.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose from 'mongoose",
+      "line": 1,
+      "context": "import mongoose from 'mongoose';"
+    },
+    {
+      "pattern": "connectDB\\(\\)",
+      "match": "connectDB()",
+      "line": 30,
+      "context": "export async function connectDB(): Promise<typeof mongoose> {"
+    },
+    {
+      "pattern": "mongoose\\.connect",
+      "match": "mongoose.connect",
+      "line": 40,
+      "context": "cached.promise = mongoose.connect(MONGODB_URI, opts).then(async (mongoose) => {"
+    },
+    {
+      "pattern": "mongodb:\\/\\/\\w+",
+      "match": "mongodb://localhost",
+      "line": 3,
+      "context": "const MONGODB_URI = process.env.DATABASE_URL || 'mongodb://localhost:27017/saudi_horizon';"
+    }
+  ],
+  "src\\lib\\notifications\\adminNotifications.ts": [
+    {
+      "pattern": "import.*mongoose",
+      "match": "import mongoose from 'mongoose",
+      "line": 3,
+      "context": "import mongoose from 'mongoose';"
+    },
+    {
+      "pattern": "import.*mongodb",
+      "match": "import connectDB from '@/lib/db/mongodb",
+      "line": 1,
+      "context": "import connectDB from '@/lib/db/mongodb';"
+    },
+    {
+      "pattern": "import.*connectDB",
+      "match": "import connectDB",
+      "line": 1,
+      "context": "import connectDB from '@/lib/db/mongodb';"
+    },
+    {
+      "pattern": "connectDB\\(\\)",
+      "match": "connectDB()",
+      "line": 50,
+      "context": "await connectDB();"
+    },
+    {
+      "pattern": "\\w+\\.findOne\\(",
+      "match": "Settings.findOne(",
+      "line": 20,
+      "context": "const notifSettings = await Settings.findOne({ key: 'notifications' });"
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "Notification.create(",
+      "line": 60,
+      "context": "await Notification.create({"
+    }
+  ],
+  "src\\tests\\notifications.test.ts": [
+    {
+      "pattern": "\\w+\\.findOne\\(",
+      "match": "RecentlyViewedProductModel.findOne(",
+      "line": 50,
+      "context": "const viewedProduct = await RecentlyViewedProductModel.findOne({"
+    },
+    {
+      "pattern": "\\w+\\.findOne\\(",
+      "match": "StockAlertModel.findOne(",
+      "line": 98,
+      "context": "const alert = await StockAlertModel.findOne({"
+    },
+    {
+      "pattern": "\\w+\\.findOne\\(",
+      "match": "RecentlyViewedProductModel.findOne(",
+      "line": 50,
+      "context": "const viewedProduct = await RecentlyViewedProductModel.findOne({"
+    },
+    {
+      "pattern": "\\w+\\.findOne\\(",
+      "match": "StockAlertModel.findOne(",
+      "line": 98,
+      "context": "const alert = await StockAlertModel.findOne({"
+    },
+    {
+      "pattern": "\\w+\\.findById\\(",
+      "match": "StockAlertModel.findById(",
+      "line": 136,
+      "context": "const deletedAlert = await StockAlertModel.findById(alert._id);"
+    },
+    {
+      "pattern": "\\w+\\.findById\\(",
+      "match": "BannerModel.findById(",
+      "line": 240,
+      "context": "const deletedBanner = await BannerModel.findById(banner._id);"
+    },
+    {
+      "pattern": "\\w+\\.findById\\(",
+      "match": "StockAlertModel.findById(",
+      "line": 136,
+      "context": "const deletedAlert = await StockAlertModel.findById(alert._id);"
+    },
+    {
+      "pattern": "\\w+\\.findById\\(",
+      "match": "BannerModel.findById(",
+      "line": 240,
+      "context": "const deletedBanner = await BannerModel.findById(banner._id);"
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "UserModel.create(",
+      "line": 13,
+      "context": "testUser = await UserModel.create({"
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "RecentlyViewedProductModel.create(",
+      "line": 60,
+      "context": "await RecentlyViewedProductModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "StockAlertModel.create(",
+      "line": 108,
+      "context": "await StockAlertModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "StockAlertModel.create(",
+      "line": 108,
+      "context": "await StockAlertModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "BannerModel.create(",
+      "line": 166,
+      "context": "await BannerModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "BannerModel.create(",
+      "line": 166,
+      "context": "await BannerModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "BannerModel.create(",
+      "line": 166,
+      "context": "await BannerModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "UserModel.create(",
+      "line": 13,
+      "context": "testUser = await UserModel.create({"
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "RecentlyViewedProductModel.create(",
+      "line": 60,
+      "context": "await RecentlyViewedProductModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "StockAlertModel.create(",
+      "line": 108,
+      "context": "await StockAlertModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "StockAlertModel.create(",
+      "line": 108,
+      "context": "await StockAlertModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "BannerModel.create(",
+      "line": 166,
+      "context": "await BannerModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "BannerModel.create(",
+      "line": 166,
+      "context": "await BannerModel.create(["
+    },
+    {
+      "pattern": "\\w+\\.create\\(",
+      "match": "BannerModel.create(",
+      "line": 166,
+      "context": "await BannerModel.create(["
+    }
+  ]
+}

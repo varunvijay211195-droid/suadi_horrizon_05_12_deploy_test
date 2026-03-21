@@ -50,13 +50,16 @@ export function ProductsSection() {
     const handleQuickAdd = (e: React.MouseEvent, product: Product) => {
         e.preventDefault();
         e.stopPropagation();
+        const productId = product.id;
+
         addToCart({
-            _id: product._id,
+            id: productId,
+            product_id: productId,
             name: product.name,
             price: product.price,
             quantity: 1,
-            image: product.image,
-            sku: product.sku || `SKU-${product._id.slice(0, 5)}`,
+            image: product.image?.url ?? '/placeholder-product.jpg',
+            sku: product.sku || `SKU-${productId.slice(0, 5)}`,
             type: 'product'
         });
         toast.success(`${product.name} added to cart!`);
@@ -123,17 +126,17 @@ export function ProductsSection() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {products.map((product, index) => (
                                 <motion.div
-                                    key={product._id}
+                                    key={product.id}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
                                     className="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:border-[var(--color-accent)]/50 transition-all duration-300"
                                 >
-                                    <Link href={`/products/${product._id}`} className="block">
+                                    <Link href={`/products/${product.id}`} className="block">
                                         {/* Image */}
                                         <div className="aspect-square relative overflow-hidden bg-navy/20">
                                             <img
-                                                src={product.image || '/placeholder-product.jpg'}
+                                                src={product.image?.url ?? '/placeholder-product.jpg'}
                                                 alt={product.name}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={(e) => {

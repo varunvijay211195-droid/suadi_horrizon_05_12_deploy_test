@@ -1,45 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Invoice from '@/lib/db/models/Invoice';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        await connectDB();
         const { id } = await params;
+        const supabase = createClient();
 
         if (!id) {
             return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
         }
 
-        const invoice = await Invoice.findById(id);
+        const { data: invoice, error } = await supabase
+            .from('invoices')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-        if (!invoice) {
+        if (error || !invoice) {
             return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
         }
 
         // Return a sanitized version of the invoice for public view
-        // We don't want to expose createBy or internal MongoDB fields necessarily
         return NextResponse.json({
-            _id: invoice._id,
-            invoiceNumber: invoice.invoiceNumber,
-            customer: invoice.customer,
-            items: invoice.items,
-            subtotal: invoice.subtotal,
-            vatRate: invoice.vatRate,
-            vatAmount: invoice.vatAmount,
-            totalAmount: invoice.totalAmount,
-            currency: invoice.currency,
-            status: invoice.status,
-            dueDate: invoice.dueDate,
-            paidAt: invoice.paidAt,
-            notes: invoice.notes,
-            createdAt: invoice.createdAt,
+            ...invoice,
+            _id: invoice.id,
+            invoiceNumber: invoice.invoice_number,
+            vatRate: invoice.vat_rate,
+            vatAmount: invoice.vat_amount,
+            totalAmount: invoice.total_amount,
+            dueDate: invoice.due_date,
+            paidAt: invoice.paid_at,
+            createdAt: invoice.created_at,
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Public invoice fetch error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }

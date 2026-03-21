@@ -1,24 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import QuoteRequest from '@/lib/db/models/QuoteRequest';
-import { verifyAccessToken } from '@/lib/auth/jwt';
+import { createClient } from '@/lib/supabase/server';
+import { verifyAuth } from '@/lib/auth/middleware';
 
 // POST /api/user/quotes/accept  — user accepts a responded quote
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
-
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+        const payload = await verifyAuth(request);
+        if (!payload) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const token = authHeader.split(' ')[1];
-        let payload: any;
-        try {
-            payload = verifyAccessToken(token);
-        } catch {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
         }
 
         const userId = payload.sub;
@@ -28,26 +17,42 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'quoteId is required' }, { status: 400 });
         }
 
+        const supabase = createClient();
+
         // Find the quote and verify ownership
-        const quote = await QuoteRequest.findById(quoteId);
-        if (!quote) {
+        const { data: quote, error: fetchError } = await supabase
+            .from('quote_requests')
+            .select('*')
+            .eq('id', quoteId)
+            .single();
+
+        if (fetchError || !quote) {
             return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
         }
-        if (quote.userId && quote.userId !== userId) {
+
+        if (quote.user_id && quote.user_id !== userId) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
+
         if (quote.status !== 'responded') {
             return NextResponse.json({ error: 'Quote is not in a responded state' }, { status: 400 });
         }
-        if (quote.validUntil && new Date(quote.validUntil) < new Date()) {
+
+        if (quote.valid_until && new Date(quote.valid_until) < new Date()) {
             return NextResponse.json({ error: 'Quote has expired' }, { status: 400 });
         }
 
-        const updated = await QuoteRequest.findByIdAndUpdate(
-            quoteId,
-            { status: 'accepted', acceptedAt: new Date() },
-            { new: true }
-        );
+        const { data: updated, error: updateError } = await supabase
+            .from('quote_requests')
+            .update({ 
+                status: 'accepted', 
+                accepted_at: new Date().toISOString() 
+            })
+            .eq('id', quoteId)
+            .select()
+            .single();
+
+        if (updateError) throw updateError;
 
         return NextResponse.json({ quote: updated });
     } catch (error: any) {
@@ -56,38 +61,45 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// POST /api/user/quotes/decline
+// DELETE /api/user/quotes/decline
 export async function DELETE(request: NextRequest) {
     try {
-        await connectDB();
-
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+        const payload = await verifyAuth(request);
+        if (!payload) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const token = authHeader.split(' ')[1];
-        let payload: any;
-        try {
-            payload = verifyAccessToken(token);
-        } catch {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
         }
 
         const userId = payload.sub;
         const { quoteId } = await request.json();
 
-        const quote = await QuoteRequest.findById(quoteId);
-        if (!quote) return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
-        if (quote.userId && quote.userId !== userId) {
+        if (!quoteId) {
+            return NextResponse.json({ error: 'quoteId is required' }, { status: 400 });
+        }
+
+        const supabase = createClient();
+
+        const { data: quote, error: fetchError } = await supabase
+            .from('quote_requests')
+            .select('*')
+            .eq('id', quoteId)
+            .single();
+
+        if (fetchError || !quote) {
+            return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
+        }
+
+        if (quote.user_id && quote.user_id !== userId) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        const updated = await QuoteRequest.findByIdAndUpdate(
-            quoteId,
-            { status: 'cancelled' },
-            { new: true }
-        );
+        const { data: updated, error: updateError } = await supabase
+            .from('quote_requests')
+            .update({ status: 'cancelled' })
+            .eq('id', quoteId)
+            .select()
+            .single();
+
+        if (updateError) throw updateError;
 
         return NextResponse.json({ quote: updated });
     } catch (error: any) {

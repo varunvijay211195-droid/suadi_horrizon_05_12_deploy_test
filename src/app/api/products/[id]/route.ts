@@ -1,208 +1,209 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Product from '@/lib/db/models/Product';
-import { verifyAdminToken } from '@/lib/auth/adminAuth';
-import { notifyLowStock } from '@/lib/notifications/adminNotifications';
-import { deleteFromCloudinary } from '@/lib/cloudinary';
+import { createClient } from '@/lib/supabase/server'
+
+interface ProductImage {
+    url: string;
+    alt?: string;
+    public_id?: string;
+}
+
+interface ProductDocument {
+    url: string;
+    name: string;
+    type: string;
+}
+
+interface ProductSpecs {
+    [key: string]: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    sku: string;
+    brand: string;
+    category: string;
+    subcategory: string | null;
+    price: number;
+    original_price?: number;
+    image: ProductImage | null;
+    gallery: ProductImage[];
+    documents: ProductDocument[];
+    description: string;
+    specs: ProductSpecs;
+    compatibility: string[];
+    in_stock: boolean;
+    stock: number;
+    rating: number;
+    reviews: number;
+    oem_code: string;
+    featured: boolean;
+    created_at: string;
+    updated_at: string;
+}
 
 /**
- * Normalize a product from the API response.
- * Mongoose .populate() returns objects for brand/category/image,
- * but the UI expects plain strings. This flattens them.
+ * Normalize a product from the Supabase response.
+ * Convert snake_case to camelCase for frontend compatibility.
  */
-function normalizeProduct(p: any) {
-    // Get the plain object from Mongoose document
-    const doc = p._doc || p;
-
-    let brand = doc.brand;
-    if (brand && typeof brand === 'object') brand = brand.name || brand.slug || brand._id || '';
-
-    let category = doc.category;
-    if (category && typeof category === 'object') category = category.name || category.slug || category._id || '';
-
-    let image = doc.image;
-    if (image && typeof image === 'object') image = image.url || '';
-
-    let images = doc.images;
-    if (Array.isArray(images)) {
-        images = images.map((img: any) =>
-            img && typeof img === 'object' ? (img.url || '') : (img || '')
-        ).filter(Boolean);
+function normalizeProduct(p: {
+    id: string;
+    name: string;
+    sku: string;
+    brand: string;
+    category: string;
+    subcategory: string | null;
+    price: number;
+    original_price?: number;
+    image: ProductImage | null;
+    gallery: ProductImage[];
+    documents: ProductDocument[];
+    description: string;
+    specs: ProductSpecs;
+    compatibility: string[];
+    in_stock: boolean;
+    stock: number;
+    rating: number;
+    reviews: number;
+    oem_code: string;
+    featured: boolean;
+    created_at: string;
+    updated_at: string;
+}): Product {
+    return {
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        brand: p.brand,
+        category: p.category,
+        subcategory: p.subcategory,
+        price: p.price,
+        original_price: p.original_price,
+        image: p.image,
+        gallery: p.gallery || [],
+        documents: p.documents || [],
+        description: p.description,
+        specs: p.specs,
+        compatibility: p.compatibility || [],
+        in_stock: p.in_stock,
+        stock: p.stock,
+        rating: p.rating,
+        reviews: p.reviews,
+        oem_code: p.oem_code,
+        featured: p.featured,
+        created_at: p.created_at,
+        updated_at: p.updated_at
     }
-
-    return { ...doc, brand, category, image, images };
 }
 
 export async function GET(
-    request: NextRequest,
+    request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const supabase = createClient();
+    const resolvedParams = await params;
+    const productId = resolvedParams.id;
+
     try {
-        const { id } = await params;
-        await connectDB();
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', productId)
+            .single();
 
-        const product = await Product.findById(id).populate('brand category subcategory');
-
-        if (!product) {
-            return NextResponse.json(
-                { error: 'Product not found' },
-                { status: 404 }
-            );
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return Response.json({ error: 'Product not found' }, { status: 404 });
+            }
+            console.error('Supabase error:', error);
+            return Response.json({ error: error.message }, { status: 500 });
         }
 
-        return NextResponse.json(normalizeProduct(product));
-    } catch (error: any) {
-        console.error('Error fetching product:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch product', details: error.message },
-            { status: 500 }
-        );
+        if (!data) {
+            return Response.json({ error: 'Product not found' }, { status: 404 });
+        }
+
+        return Response.json(normalizeProduct(data));
+
+    } catch (error) {
+        console.error('[GET /api/products/[id]] Error:', error);
+        return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
-// PATCH /api/products/[id] - Update product (stock, price, name, etc.)
-export async function PATCH(
-    request: NextRequest,
+export async function PUT(
+    request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const authResult = await verifyAdminToken(request);
-    if (authResult.error) {
-        return NextResponse.json(
-            { error: authResult.error },
-            { status: authResult.status }
-        );
-    }
+    const resolvedParams = await params;
+    const supabase = createClient();
+    const productId = resolvedParams.id;
 
     try {
-        await connectDB();
-        const { id } = await params;
         const body = await request.json();
 
-        // Only allow certain fields to be updated
-        const allowedFields = ['name', 'sku', 'price', 'stock', 'category', 'brand', 'image', 'isActive', 'description', 'inStock', 'subcategory'];
-        const updateData: Record<string, any> = {};
-        for (const key of allowedFields) {
-            const val = body[key];
-            if (val !== undefined) {
-                updateData[key] = val;
-            }
+        const { data, error } = await supabase
+            .from('products')
+            .update({
+                name: body.name,
+                sku: body.sku,
+                brand: body.brand,
+                category: body.category,
+                subcategory: body.subcategory,
+                price: body.price,
+                original_price: body.original_price,
+                image: body.image,
+                gallery: body.gallery,
+                documents: body.documents,
+                description: body.description,
+                specs: body.specs,
+                compatibility: body.compatibility,
+                in_stock: body.in_stock,
+                stock: body.stock,
+                rating: body.rating,
+                reviews: body.reviews,
+                oem_code: body.oem_code,
+                featured: body.featured
+            })
+            .eq('id', productId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase update error:', error);
+            return Response.json({ error: error.message }, { status: 500 });
         }
 
-        const oldProduct = await Product.findById(id);
-        if (!oldProduct) {
-            return NextResponse.json(
-                { error: 'Product not found' },
-                { status: 404 }
-            );
-        }
+        return Response.json(normalizeProduct(data));
 
-        // Handle Image Update Cleanup
-        if (updateData.image && oldProduct.image?.public_id &&
-            updateData.image.public_id !== oldProduct.image.public_id) {
-            try {
-                await deleteFromCloudinary(oldProduct.image.public_id);
-            } catch (cleanupError) {
-                console.warn('Failed to delete old image from Cloudinary:', cleanupError);
-            }
-        }
-
-        // Ensure inStock reflects stock level if not explicitly provided
-        if (updateData.stock !== undefined && updateData.inStock === undefined) {
-            updateData.inStock = updateData.stock > 0;
-        }
-
-        const product = await Product.findByIdAndUpdate(id, updateData, { new: true }).populate('brand category subcategory');
-
-        if (!product) {
-            return NextResponse.json(
-                { error: 'Product not found after update' },
-                { status: 404 }
-            );
-        }
-
-        // Check for low stock and notify admin if needed
-        if (product.stock !== undefined && product.stock < 10) {
-            try {
-                await notifyLowStock(product.name, product.stock);
-            } catch (notifyError) {
-                console.warn('Failed to send low stock notification:', notifyError);
-            }
-        }
-
-        return NextResponse.json(normalizeProduct(product));
-    } catch (error: any) {
-        console.error('Error updating product:', error);
-        return NextResponse.json(
-            { error: 'Failed to update product', details: error.message },
-            { status: 500 }
-        );
+    } catch (error) {
+        console.error('[PUT /api/products/[id]] Error:', error);
+        return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
-// PUT /api/products/[id] - Full update product (alias for PATCH)
-export async function PUT(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-) {
-    return PATCH(request, context);
-}
-
-// DELETE /api/products/[id] - Delete product
 export async function DELETE(
-    request: NextRequest,
+    request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const authResult = await verifyAdminToken(request);
-    if (authResult.error) {
-        return NextResponse.json(
-            { error: authResult.error },
-            { status: authResult.status }
-        );
-    }
+    const resolvedParams = await params;
+    const supabase = createClient();
+    const productId = resolvedParams.id;
 
     try {
-        await connectDB();
-        const { id } = await params;
+        const { error } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', productId);
 
-        const product = await Product.findById(id);
-
-        if (!product) {
-            return NextResponse.json(
-                { error: 'Product not found' },
-                { status: 404 }
-            );
+        if (error) {
+            console.error('Supabase delete error:', error);
+            return Response.json({ error: error.message }, { status: 500 });
         }
 
-        // Cleanup Cloudinary Assets
-        if (product.image?.public_id) {
-            try {
-                await deleteFromCloudinary(product.image.public_id);
-            } catch (cleanupError) {
-                console.warn('Failed to delete image from Cloudinary during product deletion:', cleanupError);
-            }
-        }
+        return Response.json({ message: 'Product deleted successfully' });
 
-        // Cleanup Gallery Assets
-        if (product.gallery && product.gallery.length > 0) {
-            for (const img of product.gallery) {
-                if (img.public_id) {
-                    try {
-                        await deleteFromCloudinary(img.public_id);
-                    } catch (galError) {
-                        console.warn('Failed to delete gallery image from Cloudinary:', galError);
-                    }
-                }
-            }
-        }
-
-        await Product.findByIdAndDelete(id);
-
-        return NextResponse.json({ message: 'Product deleted successfully', id });
-    } catch (error: any) {
-        console.error('Error deleting product:', error);
-        return NextResponse.json(
-            { error: 'Failed to delete product', details: error.message },
-            { status: 500 }
-        );
+    } catch (error) {
+        console.error('[DELETE /api/products/[id]] Error:', error);
+        return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

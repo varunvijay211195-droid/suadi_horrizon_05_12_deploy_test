@@ -122,7 +122,7 @@ export default function FeaturedProducts() {
                         const imageUrl = getSafeImageUrl(product.image);
                         return (
                             <motion.div
-                                key={product._id}
+                                key={`${product._id}-${index}`}
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}

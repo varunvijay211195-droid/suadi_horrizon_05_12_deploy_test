@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/db/mongodb';
-import Invoice from '@/lib/db/models/Invoice';
-import Order from '@/lib/db/models/Order';
-import QuoteRequest from '@/lib/db/models/QuoteRequest';
+import { createClient } from '@/lib/supabase/server';
 import { verifyAuth } from '@/lib/auth/middleware';
 
 // GET — List all invoices (with optional filters)
@@ -13,39 +10,59 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        await connectDB();
-
+        const supabase = createClient();
         const { searchParams } = new URL(req.url);
         const status = searchParams.get('status');
         const sourceType = searchParams.get('sourceType');
         const search = searchParams.get('search');
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '20');
+        const offset = (page - 1) * limit;
 
-        const filter: any = {};
-        if (status && status !== 'all') filter.status = status;
-        if (sourceType && sourceType !== 'all') filter.sourceType = sourceType;
-        if (search) {
-            filter.$or = [
-                { invoiceNumber: { $regex: search, $options: 'i' } },
-                { 'customer.name': { $regex: search, $options: 'i' } },
-                { 'customer.company': { $regex: search, $options: 'i' } },
-                { 'customer.email': { $regex: search, $options: 'i' } },
-            ];
+        // Build base query for count and data
+        const applyFilters = (query: any) => {
+            if (status && status !== 'all') {
+                query = query.eq('status', status);
+            }
+            if (sourceType && sourceType !== 'all') {
+                query = query.eq('source_type', sourceType);
+            }
+            if (search) {
+                const term = `%${search}%`;
+                query = query.or(
+                    `invoice_number.ilike.${term},customer->>name.ilike.${term},customer->>company.ilike.${term},customer->>email.ilike.${term}`
+                );
+            }
+            return query;
+        };
+
+        const { count, error: countError } = await applyFilters(
+            supabase.from('invoices').select('id', { count: 'exact', head: true })
+        );
+
+        if (countError) {
+            console.error('Error counting invoices:', countError);
+            return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
         }
 
-        const total = await Invoice.countDocuments(filter);
-        const invoices = await Invoice.find(filter)
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .lean();
+        const { data: invoices, error: invoicesError } = await applyFilters(
+            supabase
+                .from('invoices')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1)
+        );
+
+        if (invoicesError) {
+            console.error('Error fetching invoices:', invoicesError);
+            return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
+        }
 
         return NextResponse.json({
-            invoices,
-            total,
+            invoices: invoices || [],
+            total: count || 0,
             page,
-            totalPages: Math.ceil(total / limit),
+            totalPages: Math.ceil((count || 0) / limit),
         });
     } catch (error: any) {
         console.error('Error fetching invoices:', error);
@@ -61,8 +78,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        await connectDB();
-
+        const supabase = createClient();
         const body = await req.json();
         const { sourceType, sourceId, items, notes, dueDate, vatRate = 15 } = body;
 
@@ -72,52 +88,75 @@ export async function POST(req: NextRequest) {
 
         // Get customer info from source
         let customer: any = {};
+        let derivedItems: any[] | undefined = items;
 
         if (sourceType === 'order') {
-            const order = await Order.findById(sourceId).populate('user', 'email profile');
-            if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .select('*, users!inner(email, profile)')
+                .eq('id', sourceId)
+                .single();
 
-            const user = order.user as any;
+            if (orderError || !order) {
+                return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+            }
+
+            const user = order.users;
+            const shippingAddress = order.shipping_address || {};
+
             customer = {
-                name: order.shippingAddress?.name || user?.profile?.name || user?.email || 'Customer',
-                company: order.shippingAddress?.company || '',
-                email: order.shippingAddress?.email || user?.email || '',
-                phone: order.shippingAddress?.phone || '',
+                name: shippingAddress.name || user?.profile?.name || user?.email || 'Customer',
+                company: shippingAddress.company || '',
+                email: shippingAddress.email || user?.email || '',
+                phone: shippingAddress.phone || '',
                 address: [
-                    order.shippingAddress?.street1,
-                    order.shippingAddress?.street2,
-                    order.shippingAddress?.city,
-                    order.shippingAddress?.state,
-                    order.shippingAddress?.zip,
-                    order.shippingAddress?.country,
+                    shippingAddress.street1,
+                    shippingAddress.street2,
+                    shippingAddress.city,
+                    shippingAddress.state,
+                    shippingAddress.zip,
+                    shippingAddress.country,
                 ].filter(Boolean).join(', '),
             };
 
-            // If no items provided, derive from order
-            if (!items || items.length === 0) {
-                const orderItems = order.items.map((item: any) => ({
-                    description: item.name || `Product (${item.product})`,
-                    quantity: item.quantity,
-                    unitPrice: item.price,
-                    total: item.quantity * item.price,
-                }));
-                body.items = orderItems;
+            if (!derivedItems || derivedItems.length === 0) {
+                const { data: orderItems, error: orderItemsError } = await supabase
+                    .from('order_items')
+                    .select('*, products(*)')
+                    .eq('order_id', sourceId);
+
+                if (orderItemsError) {
+                    console.error('Error fetching order items:', orderItemsError);
+                } else {
+                    derivedItems = orderItems.map((item: any) => ({
+                        description: item.name || item.products?.name || `Product (${item.product})`,
+                        quantity: item.quantity,
+                        unitPrice: item.price,
+                        total: item.quantity * item.price,
+                    }));
+                }
             }
         } else if (sourceType === 'quote') {
-            const quote = await QuoteRequest.findById(sourceId);
-            if (!quote) return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
+            const { data: quote, error: quoteError } = await supabase
+                .from('quote_requests')
+                .select('*')
+                .eq('id', sourceId)
+                .single();
+
+            if (quoteError || !quote) {
+                return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
+            }
 
             customer = {
-                name: quote.contactPerson,
-                company: quote.companyName,
+                name: quote.contact_person,
+                company: quote.company_name,
                 email: quote.email,
                 phone: quote.phone,
             };
 
-            // If no items provided, derive from quote
-            if (!items || items.length === 0) {
-                const quotedPrice = quote.quotedPrice || 0;
-                body.items = [{
+            if (!derivedItems || derivedItems.length === 0) {
+                const quotedPrice = quote.quoted_price || 0;
+                derivedItems = [{
                     description: quote.items || 'Quoted Items',
                     quantity: 1,
                     unitPrice: quotedPrice,
@@ -127,34 +166,53 @@ export async function POST(req: NextRequest) {
         }
 
         // Calculate totals
-        const invoiceItems = body.items || items || [];
-        const subtotal = invoiceItems.reduce((sum: number, item: any) => sum + (item.total || item.quantity * item.unitPrice), 0);
-        const vatAmount = Math.round(subtotal * vatRate / 100 * 100) / 100;
+        const invoiceItems = derivedItems || [];
+        const subtotal = invoiceItems.reduce(
+            (sum: number, item: any) => sum + (item.total || item.quantity * item.unitPrice),
+            0
+        );
+        const vatAmount = Math.round((subtotal * vatRate) / 100 * 100) / 100;
         const totalAmount = Math.round((subtotal + vatAmount) * 100) / 100;
 
         // Generate invoice number manually to avoid middleware issues
         const year = new Date().getFullYear();
-        const count = await Invoice.countDocuments({
-            invoiceNumber: { $regex: `^INV-${year}-` }
-        });
-        const invoiceNumber = `INV-${year}-${String(count + 1).padStart(4, '0')}`;
+        const { count: existingCount, error: countError } = await supabase
+            .from('invoices')
+            .select('id', { count: 'exact', head: true })
+            .ilike('invoice_number', `INV-${year}-%`);
 
-        const invoice = await Invoice.create({
-            invoiceNumber,
-            sourceType,
-            sourceId,
-            customer,
-            items: invoiceItems,
-            subtotal,
-            vatRate,
-            vatAmount,
-            totalAmount,
-            currency: 'SAR',
-            status: 'draft',
-            notes,
-            dueDate: dueDate ? new Date(dueDate) : undefined,
-            createdBy: auth.sub,
-        });
+        if (countError) {
+            console.error('Error counting invoices:', countError);
+            return NextResponse.json({ error: 'Failed to generate invoice number' }, { status: 500 });
+        }
+
+        const invoiceNumber = `INV-${year}-${String((existingCount || 0) + 1).padStart(4, '0')}`;
+
+        const { data: invoice, error: invoiceError } = await supabase
+            .from('invoices')
+            .insert({
+                invoice_number: invoiceNumber,
+                source_type: sourceType,
+                source_id: sourceId,
+                customer,
+                items: invoiceItems,
+                subtotal,
+                vat_rate: vatRate,
+                vat_amount: vatAmount,
+                total_amount: totalAmount,
+                currency: 'SAR',
+                status: 'draft',
+                notes,
+                due_date: dueDate ? new Date(dueDate).toISOString() : null,
+                created_by: auth.sub,
+            })
+            .select()
+            .single();
+
+        if (invoiceError || !invoice) {
+            console.error('Error creating invoice:', invoiceError);
+            return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 });
+        }
 
         return NextResponse.json({ invoice }, { status: 201 });
     } catch (error: any) {
