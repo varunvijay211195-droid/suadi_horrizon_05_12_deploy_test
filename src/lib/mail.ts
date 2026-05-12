@@ -1,17 +1,6 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.zoho.com',
-    port: parseInt(process.env.SMTP_PORT || '465'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-    tls: {
-        rejectUnauthorized: false
-    }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendEmailParams {
     to: string;
@@ -26,24 +15,29 @@ interface SendEmailParams {
 }
 
 export async function sendEmail({ to, subject, text, html, attachments }: SendEmailParams) {
-    console.log(`[MAIL] Starting send to ${to} with subject: ${subject}`);
+    console.log(`[MAIL] Starting send to ${to} with subject: ${subject} via Resend`);
     try {
-        const info = await transporter.sendMail({
-            from: `"${process.env.SMTP_FROM_NAME || 'Saudi Horizon'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        const { data, error } = await resend.emails.send({
+            from: `${process.env.SMTP_FROM_NAME || 'Saudi Horizon'} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
             to,
             subject,
-            text,
-            html,
+            text: text || '',
+            html: html || '',
             attachments: attachments?.map(a => ({
                 filename: a.filename,
                 content: a.content,
-                contentType: a.contentType,
             })),
         });
-        console.log('[MAIL] Email sent successfully: %s', info.messageId);
-        return { success: true, messageId: info.messageId };
+
+        if (error) {
+            console.error('[MAIL] Resend Error:', error);
+            return { success: false, error };
+        }
+
+        console.log('[MAIL] Email sent successfully via Resend:', data?.id);
+        return { success: true, messageId: data?.id };
     } catch (error) {
-        console.error('[MAIL] Error sending email:', error);
+        console.error('[MAIL] Unexpected error sending email via Resend:', error);
         return { success: false, error };
     }
 }
