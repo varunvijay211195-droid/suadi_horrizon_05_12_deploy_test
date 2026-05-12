@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateInvoicePDFServer } from '@/lib/invoices/generatePDFServer';
-import { verifyAuth } from '@/lib/auth/middleware';
+import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,25 +12,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         // Support token in query string for direct browser downloads (window.open)
         const url = new URL(req.url);
         const queryToken = url.searchParams.get('token');
-        let auth;
+        let authResult;
         if (queryToken) {
-            // Temporarily add token to header for verifyAuth
+            // Temporarily add token to header for verifyAdminToken
             const headers = new Headers(req.headers);
             headers.set('Authorization', `Bearer ${queryToken}`);
             const modifiedReq = new NextRequest(req.url, { headers });
-            auth = await verifyAuth(modifiedReq);
+            authResult = await verifyAdminToken(modifiedReq);
         } else {
-            auth = await verifyAuth(req);
+            authResult = await verifyAdminToken(req);
         }
-        if (!auth || auth.role !== 'admin') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status });
         }
 
         const { id } = await params;
         const supabase = createClient();
         const { data: invoice, error } = await supabase
             .from('invoices')
-            .select('*')
+            .select('*, invoice_items(*)')
             .eq('id', id)
             .single();
 
@@ -41,23 +41,33 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             throw error;
         }
 
+        const formattedInvoice = {
+            ...invoice,
+            items: (invoice.invoice_items || []).map((item: any) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unit_price,
+                total: item.total
+            }))
+        };
+
         const pdfBuffer = await generateInvoicePDFServer({
-            invoiceNumber: invoice.invoice_number || invoice.invoiceNumber,
-            date: new Date(invoice.created_at || invoice.createdAt).toLocaleDateString('en-SA', {
+            invoiceNumber: formattedInvoice.invoice_number || formattedInvoice.invoiceNumber,
+            date: new Date(formattedInvoice.created_at || formattedInvoice.createdAt).toLocaleDateString('en-SA', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
             }),
-            dueDate: invoice.due_date || invoice.dueDate
-                ? new Date(invoice.due_date || invoice.dueDate).toLocaleDateString('en-SA', {
+            dueDate: formattedInvoice.due_date || formattedInvoice.dueDate
+                ? new Date(formattedInvoice.due_date || formattedInvoice.dueDate).toLocaleDateString('en-SA', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
                   })
                 : undefined,
-            customer: invoice.customer,
-            items: invoice.items,
-            subtotal: invoice.subtotal,
+            customer: formattedInvoice.customer,
+            items: formattedInvoice.items,
+            subtotal: formattedInvoice.subtotal,
             vatRate: invoice.vat_rate || invoice.vatRate,
             vatAmount: invoice.vat_amount || invoice.vatAmount,
             totalAmount: invoice.total_amount || invoice.totalAmount,

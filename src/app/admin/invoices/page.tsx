@@ -347,7 +347,7 @@ export default function AdminInvoicesPage() {
                                                     <div>
                                                         <p className="text-sm font-bold text-white">{inv.invoiceNumber}</p>
                                                         <p className="text-[10px] text-slate-500">
-                                                            {inv.items.length} item{inv.items.length !== 1 ? "s" : ""}
+                                                            {inv.items?.length || 0} item{inv.items?.length !== 1 ? "s" : ""}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -368,10 +368,10 @@ export default function AdminInvoicesPage() {
                                             <TableCell>
                                                 <div>
                                                     <p className="text-sm font-bold text-gold">
-                                                        {inv.currency} {inv.totalAmount.toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                                                        {inv.currency} {(inv.totalAmount || 0).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
                                                     </p>
                                                     <p className="text-[10px] text-slate-500">
-                                                        VAT: {inv.currency} {inv.vatAmount.toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                                                        VAT: {inv.currency} {(inv.vatAmount || 0).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
                                                     </p>
                                                 </div>
                                             </TableCell>
@@ -551,15 +551,15 @@ export default function AdminInvoicesPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {selectedInvoice.items.map((item, i) => (
+                                        {(selectedInvoice.items || []).map((item, i) => (
                                             <tr key={i} className="border-b border-white/[0.02]">
                                                 <td className="px-5 py-3 text-white">{item.description}</td>
                                                 <td className="px-5 py-3 text-center text-slate-300">{item.quantity}</td>
                                                 <td className="px-5 py-3 text-right text-slate-300">
-                                                    {selectedInvoice.currency} {item.unitPrice.toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                                                    {selectedInvoice.currency} {(item.unitPrice || 0).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-5 py-3 text-right font-semibold text-white">
-                                                    {selectedInvoice.currency} {item.total.toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                                                    {selectedInvoice.currency} {(item.total || 0).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
                                                 </td>
                                             </tr>
                                         ))}
@@ -573,19 +573,19 @@ export default function AdminInvoicesPage() {
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-400">Subtotal</span>
                                         <span className="text-white">
-                                            {selectedInvoice.currency} {selectedInvoice.subtotal.toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                                            {selectedInvoice.currency} {(selectedInvoice.subtotal || 0).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-400">VAT ({selectedInvoice.vatRate}%)</span>
                                         <span className="text-white">
-                                            {selectedInvoice.currency} {selectedInvoice.vatAmount.toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                                            {selectedInvoice.currency} {(selectedInvoice.vatAmount || 0).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                     <div className="border-t border-gold/30 pt-3 mt-3 flex justify-between text-lg">
                                         <span className="text-gold font-bold">Total Amount</span>
                                         <span className="text-gold font-bold">
-                                            {selectedInvoice.currency} {selectedInvoice.totalAmount.toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                                            {selectedInvoice.currency} {(selectedInvoice.totalAmount || 0).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                 </div>

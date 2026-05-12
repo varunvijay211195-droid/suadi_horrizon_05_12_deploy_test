@@ -84,11 +84,13 @@ export function StatsSection() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={isInView ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.6 }}
-                            className="text-center mb-24 max-w-3xl mx-auto"
+                            className="flex flex-col items-center justify-center text-center gap-6 mb-24 relative z-10 w-full"
                         >
-                            <span className="micro-label mb-6 block tracking-[0.3em] uppercase">{t('home.stats.label')}</span>
-                            <h2 className="heading-md mb-6">{t('home.stats.title')}</h2>
-                            <div className="w-16 h-1 bg-gold/40 mx-auto rounded-full" />
+                            <div className="max-w-3xl flex flex-col items-center">
+                                <span className="micro-label mb-6 block text-center tracking-[0.3em] uppercase">{t('home.stats.label')}</span>
+                                <h2 className="heading-md mb-6 text-center">{t('home.stats.title')}</h2>
+                                <div className="w-16 h-1 bg-gold/40 rounded-full mx-auto" />
+                            </div>
                         </motion.div>
 
                         {/* Stats Grid */}

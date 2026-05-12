@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription, SheetHeader } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { getProducts, Product } from '@/api/products';
+import { getCategories, Category } from '@/api/categories';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductTableRow } from '@/components/ProductTableRow';
 import { FilterSidebar, FilterState } from '@/components/FilterSidebar';
@@ -30,15 +31,65 @@ import equipmentDatabase from '../../../equipment-database.json';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Maps short URL slugs → exact Supabase category names
+// Also maps real category names from anc_categories.json to themselves (pass-through)
 const categoryIdToName: Record<string, string> = {
+    // Legacy short-form slugs
     'engine': 'Engine Parts',
     'hydraulics': 'Hydraulic Parts',
-    'electrical': 'Electrical (ELC) Parts',
+    'electrical': 'Electrical Group',
     'transmission': 'Transmission Parts',
     'undercarriage': 'Undercarriage Parts',
-    'attachments': 'Attachments',
-    'cooling': 'Cooling System Parts',
-    'spare': 'Spare Parts',
+    'attachments': 'Bucket & Attachment Group',
+    'cooling': 'Radiator & Oil Cooler Group',
+    'spare': 'Other',
+    // Real category slugs (generated from name_en in anc_categories.json)
+    'heavy-casting-group': 'Heavy Casting Group',
+    'motor-parts': 'Engine Parts',
+    'radiator-oil-cooler-group': 'Radiator & Oil Cooler Group',
+    'caterpillar-group': 'Caterpillar Group',
+    'zf-hidromek-group': 'ZF Hidromek Group',
+    'carraro-parts-group': 'Carraro Parts Group',
+    'axle-group': 'Axle Group',
+    'brake-pad-group': 'Brake Pad Group',
+    'gasket-groups': 'Gasket Groups',
+    'steel-bushing-group': 'Steel Bushing Group',
+    'bearing-group': 'Bearing Group',
+    'gear-group': 'Gear Group',
+    'electrical-group': 'Electrical Group',
+    'shock-absorber-group': 'Shock Absorber Group',
+    'filter-group': 'Filter Group',
+    'belt-group': 'Belt Group',
+    'turbochargers': 'Turbochargers',
+    'shim-washer-group': 'Shim Washer Group',
+    'arm-groups': 'Arm Groups',
+    'button-switch-group': 'Button / Switch Group',
+    'glass-group': 'Glass Group',
+    'lamp-group': 'Lamp Group',
+    'sensor-switch-group': 'Sensor / Switch Group',
+    'pin-group': 'Pin Group',
+    'other': 'Other',
+    'piston-group': 'Piston Group',
+    'piston-seals': 'Piston Seals',
+    'labels-stickers': 'Labels / Stickers',
+    'pump-groups': 'Pump Groups',
+    'bronze-bushing-group': 'Bronze Bushing Group',
+    'piston-ring-groups': 'Piston Ring Groups',
+    'bolt-group': 'Bolt Group',
+    'fan-blade-group': 'Fan Blade Group',
+    'exhaust-group': 'Exhaust Group',
+    'mount-block-group': 'Mount / Block Group',
+    'hose-group': 'Hose Group',
+    'universal-joint-group': 'Universal Joint Group',
+    'oil-seals': 'Oil Seals',
+    'split-bushings': 'Split Bushings',
+    'plastic-group': 'Plastic Group',
+    'shaft-group': 'Shaft Group',
+    'rim-wheel-group': 'Rim / Wheel Group',
+    'cover-cap-group': 'Cover / Cap Group',
+    'bucket-tooth-group': 'Bucket Tooth Group',
+    'bucket-attachment-group': 'Bucket & Attachment Group',
+    'throttle-cable-group': 'Throttle Cable Group',
 };
 
 import { FloatingParticles, AnimatedConnector } from "@/components/effects/SceneEffects";
@@ -49,6 +100,7 @@ export default function ProductsPageClient() {
 
     const [products, setProducts] = useState<Product[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [sortBy, setSortBy] = useState('relevance');
     const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -92,26 +144,52 @@ export default function ProductsPageClient() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    useEffect(() => {
-        const loadProducts = async () => {
-            setIsLoading(true);
-            try {
-                console.log('[DEBUG] Loading products from API...');
-                const res = await getProducts();
-                console.log('[DEBUG] Products loaded:', res.products?.length, 'total:', res.total);
-                setProducts(res.products || []);
-                setFilteredProducts(res.products || []);
-            } catch (error) {
-                console.error('[DEBUG] Failed to load products:', error);
-                toast.error('Failed to load products');
-            } finally {
-                console.log('[DEBUG] Setting isLoading to false');
-                setIsLoading(false);
-            }
-        };
+    const [allCategories, setAllCategories] = useState<Category[]>([]);
+    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
-        loadProducts();
+    const loadCategories = async () => {
+        try {
+            const res = await getCategories();
+            setAllCategories(res.categories || []);
+        } catch (error) {
+            console.error('Error loading categories:', error);
+        } finally {
+            setIsLoadingCategories(false);
+        }
+    };
+
+    const loadProducts = async () => {
+        setIsLoading(true);
+        try {
+            console.log('[DEBUG] Loading products with filters:', filters);
+            const res = await getProducts({
+                category: filters.categories.length > 0 ? filters.categories[0] : undefined,
+                brand: filters.brands.length > 0 ? filters.brands[0] : undefined,
+                search: filters.search || undefined,
+                priceMin: filters.priceRange[0],
+                priceMax: filters.priceRange[1],
+                page: currentPage,
+                limit: productsPerPage
+            });
+            
+            console.log('[DEBUG] Products loaded:', res.products?.length, 'total:', res.total);
+            setProducts(res.products || []);
+            setTotalCount(res.total || 0);
+        } catch (error) {
+            console.error('[DEBUG] Failed to load products:', error);
+            toast.error('Failed to load products');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadCategories();
     }, []);
+
+    useEffect(() => {
+        loadProducts();
+    }, [filters.categories, filters.brands, filters.search, filters.priceRange, currentPage, sortBy]);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -222,54 +300,15 @@ export default function ProductsPageClient() {
     }, [filters, sortBy]);
 
     const processedProducts = useMemo(() => {
-        let filtered = [...products];
-
-        if (filters.brands.length > 0) {
-            filtered = filtered.filter((p) => filters.brands.includes(p.brand));
-        }
-
-        if (filters.categories.length > 0) {
-            filtered = filtered.filter((p) => filters.categories.includes(p.category));
-        }
-
-        filtered = filtered.filter(
-            (p) => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
-        );
-
-        if (filters.search) {
-            filtered = filtered.filter(
-                (p) =>
-                    p.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-                    p.sku.toLowerCase().includes(filters.search.toLowerCase())
-            );
-        }
-
-        switch (sortBy) {
-            case 'price-low':
-                filtered.sort((a, b) => a.price - b.price);
-                break;
-            case 'price-high':
-                filtered.sort((a, b) => b.price - a.price);
-                break;
-            case 'newest':
-                filtered.reverse();
-                break;
-            case 'rating':
-                filtered.sort((a, b) => b.rating - a.rating);
-                break;
-            default:
-                break;
-        }
-
-        return filtered;
-    }, [filters, sortBy, products]);
+        let result = [...products];
+        return result;
+    }, [products]);
 
     const paginatedProducts = useMemo(() => {
-        const startIndex = (currentPage - 1) * productsPerPage;
-        return processedProducts.slice(startIndex, startIndex + productsPerPage);
-    }, [processedProducts, currentPage, productsPerPage]);
+        return processedProducts;
+    }, [processedProducts]);
 
-    const totalPages = Math.ceil(processedProducts.length / productsPerPage);
+    const totalPages = Math.ceil(totalCount / productsPerPage);
 
     useEffect(() => {
         setFilteredProducts(processedProducts);
@@ -358,14 +397,26 @@ export default function ProductsPageClient() {
 
     const hasActiveFilters = filters.brands.length > 0 || filters.categories.length > 0 || filters.search;
 
-    const categories = [
-        { name: 'Engine Parts', icon: Zap, color: 'text-orange-500' },
-        { name: 'Hydraulic Parts', icon: Battery, color: 'text-cyan-500' },
-        { name: 'Electrical (ELC) Parts', icon: Cpu, color: 'text-amber-500' },
-        { name: 'Transmission Parts', icon: Gauge, color: 'text-purple-500' },
-        { name: 'Undercarriage Parts', icon: Wrench, color: 'text-emerald-500' },
-        { name: 'Attachments', icon: Package, color: 'text-slate-400' },
-    ];
+    const getCategoryStyles = (catName: string) => {
+        const name = catName.toLowerCase();
+        if (name.includes('engine')) return { icon: Zap, color: 'text-orange-500' };
+        if (name.includes('hydraulic')) return { icon: Battery, color: 'text-cyan-500' };
+        if (name.includes('elect')) return { icon: Cpu, color: 'text-amber-500' };
+        if (name.includes('transm')) return { icon: Gauge, color: 'text-purple-500' };
+        if (name.includes('under') || name.includes('axle')) return { icon: Wrench, color: 'text-emerald-500' };
+        if (name.includes('attach') || name.includes('bucket')) return { icon: Package, color: 'text-slate-400' };
+        if (name.includes('pump')) return { icon: Zap, color: 'text-blue-500' };
+        if (name.includes('filter')) return { icon: Battery, color: 'text-red-500' };
+        if (name.includes('gear') || name.includes('shaft')) return { icon: Gauge, color: 'text-indigo-500' };
+        return { icon: Package, color: 'text-gold' };
+    };
+
+    const displayCategories = useMemo(() => {
+        return allCategories.slice(0, 15).map(cat => ({
+            ...cat,
+            ...getCategoryStyles(cat.name)
+        }));
+    }, [allCategories]);
 
     return (
         <div className="text-white pb-24 relative min-h-screen" ref={containerRef}>
@@ -374,15 +425,13 @@ export default function ProductsPageClient() {
             {/* Extended Sidebar Lines */}
             <div className="absolute inset-0 pointer-events-none z-0 hidden lg:block overflow-hidden">
                 <div className="container-premium h-full relative">
-                    {/* Left line */}
                     <div className="absolute left-[332px] top-0 bottom-0 w-px bg-white/[0.02]" />
-                    {/* Right line */}
                     <div className="absolute right-[332px] top-0 bottom-0 w-px bg-white/[0.02] hidden xl:block" />
                 </div>
             </div>
 
             <div className="container-premium relative z-10">
-                {/* Breadcrumb - Responsive with truncation */}
+                {/* Breadcrumb */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -435,7 +484,7 @@ export default function ProductsPageClient() {
                         </p>
                     </motion.div>
 
-                    {/* Search Bar - Full width on mobile/tablet */}
+                    {/* Search Bar */}
                     <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -453,7 +502,6 @@ export default function ProductsPageClient() {
                                 className="pl-12 pr-12 bg-white/5 border-white/10 text-white h-14 md:h-16 rounded-2xl focus:border-gold/50 focus:ring-0 placeholder:text-white/10 transition-all text-base md:text-lg font-medium shadow-[0_0_50px_rgba(0,0,0,0.2)] group-hover:bg-white/[0.07]"
                             />
 
-                            {/* Command Center Dropdown */}
                             <AnimatePresence mode="wait">
                                 {isSearchFocused && (
                                     <motion.div
@@ -465,18 +513,12 @@ export default function ProductsPageClient() {
                                     >
                                         <div className="p-4 border-b border-white/5 flex items-center justify-between">
                                             <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">SEARCH SYSTEM v2.0 // INSTANT RESULTS</span>
-                                            <div className="flex gap-2">
-                                                <kbd className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[8px] text-white/30 uppercase">ESC TO CLOSE</kbd>
-                                            </div>
                                         </div>
 
                                         <div className="max-h-[440px] overflow-y-auto scrollbar-hide">
                                             {searchInput.length > 0 ? (
                                                 processedProducts.length > 0 ? (
                                                     <div className="py-2">
-                                                        <div className="px-5 py-2">
-                                                            <span className="text-[8px] font-black text-gold/40 uppercase tracking-[.3em]">SYSTEM MATCHES ({processedProducts.length})</span>
-                                                        </div>
                                                         {processedProducts.slice(0, 5).map((p) => (
                                                             <button
                                                                 key={p.id}
@@ -484,169 +526,98 @@ export default function ProductsPageClient() {
                                                                     router.push(`/products/${p.id}`);
                                                                     setIsSearchFocused(false);
                                                                 }}
-                                                                className="w-full px-5 py-4 flex items-center gap-4 hover:bg-white/5 border-b border-white/[0.03] last:border-0 transition-all text-left group/res outline-none"
+                                                                className="w-full px-5 py-4 flex items-center gap-4 hover:bg-white/5 border-b border-white/[0.03] transition-all text-left"
                                                             >
-                                                                <div className="w-14 h-14 rounded-lg bg-white/5 overflow-hidden flex-shrink-0 border border-white/10 group-hover/res:border-gold/40 transition-colors relative">
-                                                                    <img src={getSafeImageUrl(p.image) || '/images/placeholder.svg'} alt={p.name} className="w-full h-full object-cover group-hover/res:scale-110 transition-transform duration-500" />
-                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                                                                <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden flex-shrink-0">
+                                                                    <img src={getSafeImageUrl(p.image) || '/images/placeholder.svg'} alt={p.name} className="w-full h-full object-cover" />
                                                                 </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <span className="text-[9px] font-black text-gold/70 uppercase tracking-widest">{p.brand}</span>
-                                                                        <span className="text-[9px] font-medium text-white/20 uppercase tracking-widest">Serial: {p.sku}</span>
-                                                                    </div>
-                                                                    <h4 className="text-sm font-bold text-white truncate group-hover/res:text-gold transition-colors">{p.name}</h4>
-                                                                    <p className="text-[10px] text-white/30 truncate flex items-center gap-2 mt-1 uppercase font-black tracking-widest">
-                                                                        {p.category} <span className="w-1 h-1 rounded-full bg-white/10" /> READY
-                                                                    </p>
-                                                                </div>
-                                                                <div className="text-right flex-shrink-0 ml-4">
-                                                                    <span className="block text-sm font-black text-white">${p.price.toLocaleString()}</span>
-                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase tracking-widest mt-1 border border-emerald-500/20">
-                                                                        SECURE
-                                                                    </span>
+                                                                <div className="flex-1">
+                                                                    <h4 className="text-sm font-bold text-white">{p.name}</h4>
                                                                 </div>
                                                             </button>
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <div className="py-20 text-center px-10">
-                                                        <Search className="w-10 h-10 text-white/5 mx-auto mb-6" />
-                                                        <p className="text-white/30 text-xs font-black uppercase tracking-[.2em] mb-2">No components located</p>
-                                                        <p className="text-white/10 text-[10px] uppercase tracking-widest leading-relaxed">Try searching by part number or OEM SKU</p>
-                                                    </div>
+                                                    <div className="py-10 text-center text-white/30">No components located</div>
                                                 )
                                             ) : (
                                                 <div className="p-8">
-                                                    <span className="block text-[10px] font-black text-white/20 uppercase tracking-widest mb-6 flex items-center gap-3">
-                                                        <Package className="w-3 h-3" /> PREDICTIVE SCAN CATEGORIES
-                                                    </span>
+                                                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-6 block">CATEGORIES</span>
                                                     <div className="grid grid-cols-2 gap-4">
-                                                        {categories.slice(0, 4).map(cat => (
+                                                        {displayCategories.slice(0, 4).map(cat => (
                                                             <button
-                                                                key={cat.name}
+                                                                key={cat.id}
                                                                 onClick={() => {
                                                                     setFilters(prev => ({ ...prev, categories: [cat.name] }));
                                                                     setIsSearchFocused(false);
                                                                 }}
-                                                                className="flex items-center gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-gold/30 hover:bg-gold/5 transition-all text-left group/ct"
+                                                                className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] hover:bg-gold/10 transition-colors"
                                                             >
-                                                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover/ct:bg-gold/10 transition-colors border border-white/5">
-                                                                    <cat.icon className="w-5 h-5 text-white/30 group-hover/ct:text-gold" />
-                                                                </div>
-                                                                <div>
-                                                                    <span className="text-xs font-black text-white/70 group-hover/ct:text-white block tracking-tight">{cat.name}</span>
-                                                                    <span className="text-[8px] text-white/20 font-black uppercase tracking-widest mt-1 group-hover/ct:text-gold/40 transition-colors">START SCAN</span>
-                                                                </div>
+                                                                <cat.icon className="w-5 h-5 text-white/30" />
+                                                                <span className="text-xs font-bold text-white">{cat.name}</span>
                                                             </button>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
-
-                                        {searchInput.length > 0 && (
-                                            <div className="p-5 bg-white/[0.04] border-t border-white/5 text-center">
-                                                <button
-                                                    className="w-full h-12 rounded-xl bg-white/5 hover:bg-gold text-[10px] font-black text-white uppercase tracking-[.4em] transition-all hover:text-navy group/all overflow-hidden relative"
-                                                    onClick={() => setIsSearchFocused(false)}
-                                                >
-                                                    <span className="relative z-10">EXPLORE ALL SYSTEM RESULTS</span>
-                                                    <div className="absolute inset-0 bg-gold translate-y-full group-hover/all:translate-y-0 transition-transform duration-300" />
-                                                </button>
-                                            </div>
-                                        )}
                                     </motion.div>
                                 )}
                             </AnimatePresence>
-                            {searchInput && (
-                                <button
-                                    onClick={() => {
-                                        setSearchInput('');
-                                        setFilters(prev => ({ ...prev, search: '' }));
-                                    }}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-full transition-colors"
-                                >
-                                    <X className="w-5 h-5 text-white/40" />
-                                </button>
-                            )}
                         </div>
                     </motion.div>
                 </div>
 
-                {/* Category Bar - Horizontal scroll chips */}
-                <div className="mb-16 md:mb-20">
-                    <div className="flex items-center gap-4 mb-6">
-                        <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] whitespace-nowrap">FILTER BY CATEGORY</h2>
-                        <div className="h-px flex-1 bg-white/5" />
-                    </div>
-                    <div className="flex overflow-x-auto gap-6 pb-6 scrollbar-hide">
-                        {categories.map((cat, idx) => (
-                            <motion.button
-                                key={cat.name}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: idx * 0.05 }}
-                                onClick={() => setFilters(prev => ({ ...prev, categories: [cat.name] }))}
-                                className={`flex-shrink-0 flex items-center gap-4 px-6 py-4 rounded-xl border transition-all duration-300 ${filters.categories.includes(cat.name)
-                                    ? 'bg-gold/20 border-gold/40 text-white shadow-[0_0_20px_rgba(197,160,89,0.15)]'
-                                    : 'bg-white/[0.03] border-white/10 text-white/40 hover:border-white/20 hover:text-white'}`}
-                            >
-                                <cat.icon className={`w-5 h-5 ${filters.categories.includes(cat.name) ? 'text-gold' : 'text-slate-500'}`} />
-                                <span className="text-xs font-bold whitespace-nowrap">{cat.name}</span>
-                            </motion.button>
-                        ))}
-                    </div>
-                </div>
-
-
-                <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 xl:gap-20 relative">
+                <div className="w-full h-px bg-gradient-to-r from-gold/0 via-gold/10 to-gold/0 mb-10 md:mb-12" />
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 relative">
                     {/* Mobile Filter Button */}
                     <div className="lg:hidden mb-6">
                         <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
                             <SheetTrigger asChild>
-                                <Button className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white font-bold tracking-widest uppercase text-xs">
-                                    <SlidersHorizontal className="w-4 h-4 mr-3 text-gold" />
-                                    Filters
-                                    {(filters.brands.length > 0 || filters.categories.length > 0) && (
-                                        <span className="ml-3 bg-gold text-navy text-[10px] font-black px-2 py-0.5 rounded-full">
-                                            {filters.brands.length + filters.categories.length}
-                                        </span>
-                                    )}
+                                <Button className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white font-bold uppercase text-xs">
+                                    <SlidersHorizontal className="w-4 h-4 mr-3 text-gold" /> Filters
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="left" className="w-[85vw] bg-navy border-white/5 text-white overflow-y-auto">
-                                <SheetTitle className="sr-only">Filters</SheetTitle>
-                                <div className="mt-10">
-                                    <FilterSidebar filters={filters} onFilterChange={setFilters} />
-                                </div>
+                            <SheetContent side="left" className="w-[85vw] bg-navy border-white/5 text-white">
+                                <SheetTitle className="sr-only">Product Filters</SheetTitle>
+                                <SheetDescription className="sr-only">Filter products by category, brand, and more.</SheetDescription>
+                                <FilterSidebar filters={filters} onFilterChange={setFilters} availableCategories={allCategories.map(c => c.name)} />
                             </SheetContent>
                         </Sheet>
                     </div>
 
-                    {/* Desktop Sidebar (Left) - Hidden on tablet/mobile */}
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="hidden lg:block lg:w-[320px] flex-shrink-0 relative"
-                    >
-                        <div className="sticky top-32 pb-24">
-                            <div className="mb-8 p-6 rounded-2xl bg-gold/5 border border-gold/10">
-                                <h3 className="text-sm font-bold text-gold mb-4 tracking-tight flex items-center gap-2">
-                                    <SlidersHorizontal className="w-4 h-4" />
-                                    Filter Parts
+                    {/* Desktop Sidebar */}
+                    <aside className="hidden lg:block w-[320px] flex-shrink-0">
+                        <div className="sticky top-32">
+                            <div className="flex flex-col p-6 lg:p-8 rounded-2xl bg-gold/5 border border-gold/10">
+                                <h3 className="text-base font-bold text-gold mb-6 flex items-center gap-3">
+                                    <SlidersHorizontal className="w-5 h-5" /> Filter Parts
                                 </h3>
-                                <FilterSidebar filters={filters} onFilterChange={setFilters} />
+                                <h4 className="text-sm font-bold text-white mb-2">Technical Support</h4>
+                                <p className="text-xs text-white/40 mb-5 leading-relaxed">
+                                    Need help matching OEM specifications?
+                                </p>
+                                <a
+                                    href="https://wa.me/966570196677"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex w-full justify-center items-center gap-2 text-[9px] font-black tracking-[0.2em] text-navy bg-gold hover:bg-white transition-colors px-4 py-3 rounded-xl uppercase relative z-10"
+                                >
+                                    Chat with an Engineer
+                                </a>
                             </div>
 
-                            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 opacity-60">
-                                <div className="flex justify-between items-center font-mono text-[8px] tracking-[0.3em] text-white">
-                                    <span>SEC: 01-FLTR</span>
-                                    <span>VER: 2.0.4</span>
+                            {/* Footer */}
+                            <div className="mt-auto pt-6 flex-shrink-0">
+                                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 opacity-60">
+                                    <div className="flex justify-between items-center font-mono text-[9px] tracking-[0.3em] text-white">
+                                        <span>SEC: 01-FLTR</span>
+                                        <span>VER: 2.0.4</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </aside>
 
                     {/* Main Content */}
                     <div className="flex-1 min-w-0">

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { verifyAuth } from '@/lib/auth/middleware';
+import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET - Fetch homepage config (public for frontend, full for admin)
 export async function GET(request: NextRequest) {
@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
 // PUT - Update homepage config (admin only)
 export async function PUT(request: NextRequest) {
     try {
-        const user = await verifyAuth(request);
-        if (!user) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        const authResult = await verifyAdminToken(request);
+        if (authResult.error) {
+            return NextResponse.json({ message: authResult.error }, { status: authResult.status });
         }
 
         const supabase = createClient();
@@ -84,7 +84,7 @@ export async function PUT(request: NextRequest) {
                     },
                     hero_title: body.heroTitle || '',
                     hero_subtitle: body.heroSubtitle || '',
-                    updated_by: user.sub
+                    updated_by: authResult.user?.id
                 })
                 .select()
                 .single();
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest) {
         } else {
             // Update existing config
             configId = config.id;
-            const updateData: any = { updated_by: user.sub };
+            const updateData: any = { updated_by: authResult.user?.id };
 
             if (body.featuredProductIds !== undefined) {
                 updateData.featured_product_ids = body.featuredProductIds;

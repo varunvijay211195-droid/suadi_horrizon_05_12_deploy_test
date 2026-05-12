@@ -15,7 +15,7 @@ export async function GET(
 
         const { data: invoice, error } = await supabase
             .from('invoices')
-            .select('*')
+            .select('*, invoice_items(*)')
             .eq('id', id)
             .single();
 
@@ -34,6 +34,12 @@ export async function GET(
             dueDate: invoice.due_date,
             paidAt: invoice.paid_at,
             createdAt: invoice.created_at,
+            items: (invoice.invoice_items || []).map((item: any) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unit_price,
+                total: item.total
+            }))
         });
 
     } catch (error: unknown) {

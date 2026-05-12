@@ -7,6 +7,7 @@ import { Shield, Lock, Mail, ArrowRight, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -14,45 +15,31 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const { setAuthData } = useAuth();
+    const { login } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
+        
         setLoading(true);
         setError('');
 
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+            await login(email, password);
+
+            toast.success('Signed in successfully', {
+                description: 'Welcome back to Saudi Horizon',
             });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setAuthData(
-                    data.accessToken || data.token,
-                    data.refreshToken,
-                    data.user,
-                    data.user.role === 'admin' ? '/admin' : '/'
-                );
-
-                toast.success('Signed in successfully', {
-                    description: `Welcome back${data.user.name ? `, ${data.user.name}` : ''}`,
-                });
-            } else {
-                setError(data.message || 'Incorrect email or password. Please try again.');
-                toast.error('Sign in failed', {
-                    description: data.message || 'Please check your email and password.',
-                });
-            }
-        } catch (err) {
-            setError('Something went wrong. Please try again.');
-            toast.error('Connection error', {
-                description: 'Unable to reach the server. Please try again.',
+            
+            // Redirect will happen, but we don't setLoading(false) yet to avoid flicker
+            router.push('/');
+        } catch (err: any) {
+            console.error('Login error:', err);
+            const errorMessage = err.message || 'Incorrect email or password. Please try again.';
+            setError(errorMessage);
+            toast.error('Sign in failed', {
+                description: errorMessage,
             });
-        } finally {
             setLoading(false);
         }
     };

@@ -14,19 +14,29 @@ export async function GET(request: NextRequest) {
             .eq('id', user.sub)
             .single();
 
-        if (error || !dbUser) {
+        if (error) {
+            // Handle "No rows found" error gracefully
+            if (error.code === 'PGRST116') {
+                console.log(`[Wishlist API] No user record found for ${user.sub}, returning empty wishlist`);
+                return NextResponse.json([]);
+            }
             console.error('Wishlist fetch error:', error);
-            return NextResponse.json(
-                { error: 'User not found' },
-                { status: 404 }
-            );
+            throw error;
+        }
+
+        if (!dbUser) {
+            return NextResponse.json([]);
         }
 
         return NextResponse.json(dbUser.wishlist || []);
-    } catch (error: unknown) {
+    } catch (error: any) {
         console.error('Error fetching wishlist:', error);
         
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = error?.message || 'Unknown error';
+        const stack = error?.stack || '';
+        
+        console.error(`[Wishlist API] Details: ${errorMessage}`, stack);
+
         if (errorMessage === 'Unauthorized') {
             return NextResponse.json(
                 { error: 'Unauthorized' },
@@ -35,7 +45,7 @@ export async function GET(request: NextRequest) {
         }
         
         return NextResponse.json(
-            { error: errorMessage },
+            { error: errorMessage, stack: process.env.NODE_ENV === 'development' ? stack : undefined },
             { status: 500 }
         );
     }

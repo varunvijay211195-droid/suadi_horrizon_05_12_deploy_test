@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/auth/adminAuth';
+import { sendOrderStatusUpdateEmail } from '@/lib/notifications/userNotifications';
 
 export async function GET(
     request: NextRequest,
@@ -96,6 +97,30 @@ export async function PATCH(
                 { message: 'Order not found' },
                 { status: 404 }
             );
+        }
+
+        // Send status update email to user if status was changed
+        if (status) {
+            try {
+                // Fetch user data for email
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('email, name')
+                    .eq('id', order.user_id)
+                    .single();
+
+                if (userData?.email) {
+                    // Non-blocking email send
+                    sendOrderStatusUpdateEmail(
+                        userData.email,
+                        userData.name || 'Customer',
+                        order.id.toString(),
+                        status
+                    ).catch(err => console.error('Background status update email failed:', err));
+                }
+            } catch (emailErr) {
+                console.error('Failed to fetch user for status update email:', emailErr);
+            }
         }
 
         return NextResponse.json({

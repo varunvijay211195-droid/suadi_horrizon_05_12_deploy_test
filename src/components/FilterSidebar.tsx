@@ -50,7 +50,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
   useEffect(() => {
     const loadFilterOptions = async () => {
       try {
-        const res = await getProducts({ limit: 1000 });
+        const res = await getProducts({ limit: 5000 });
         const products = res.products;
 
         // Get unique brands with counts
@@ -131,7 +131,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
         />
       </div>
 
-      <div className="h-px bg-white/5" />
+      <div className="w-full h-px bg-gradient-to-r from-gold/0 via-gold/20 to-gold/0 my-2" />
 
       {/* Categories */}
       <Collapsible defaultOpen className="space-y-4">
@@ -142,27 +142,27 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
             <ChevronDown className="w-3 h-3 group-data-[state=open]:rotate-180 transition-transform" />
           </div>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3.5 max-h-72 overflow-y-auto custom-scrollbar pr-2 pt-2">
+        <CollapsibleContent className="space-y-5 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 pt-2">
           {availableCategories.length > 0 ? (
             availableCategories.map((category) => (
-              <div key={category} className="flex items-center gap-3 group cursor-pointer hover:translate-x-1 transition-transform duration-300">
+              <div key={category} className="flex items-center gap-4 group cursor-pointer hover:translate-x-1 transition-transform duration-300">
                 <Checkbox
                   id={`category-${category}`}
                   checked={filters.categories.includes(category)}
                   onCheckedChange={(checked) =>
                     handleCategoryChange(category, checked as boolean)
                   }
-                  className="border-white/20 data-[state=checked]:bg-gold data-[state=checked]:border-gold h-4 w-4 transition-all"
+                  className="border-white/20 data-[state=checked]:bg-gold data-[state=checked]:border-gold h-5 w-5 transition-all"
                 />
                 <Label
                   htmlFor={`category-${category}`}
-                  className="text-[11px] font-bold text-white/70 group-hover:text-gold cursor-pointer transition-colors leading-none tracking-wide whitespace-nowrap"
+                  className="text-xs font-bold text-white/70 group-hover:text-gold cursor-pointer transition-colors leading-none tracking-wide whitespace-nowrap"
                   title={category}
                 >
                   {category}
                 </Label>
                 <div className="flex-1" />
-                <span className="text-[9px] font-black font-mono text-white/20 group-hover:text-gold/60 transition-colors">
+                <span className="text-[10px] font-black font-mono text-white/20 group-hover:text-gold/60 transition-colors">
                   ({productCounts.categories[category] || 0})
                 </span>
               </div>
@@ -173,7 +173,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
         </CollapsibleContent>
       </Collapsible>
 
-      <div className="h-px bg-white/5" />
+      <div className="w-full h-px bg-gradient-to-r from-gold/0 via-gold/20 to-gold/0 my-2" />
 
       {/* Brands */}
       <Collapsible defaultOpen className="space-y-4">
@@ -184,27 +184,27 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
             <ChevronDown className="w-3 h-3 group-data-[state=open]:rotate-180 transition-transform" />
           </div>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3.5 max-h-72 overflow-y-auto custom-scrollbar pr-2 pt-2">
+        <CollapsibleContent className="space-y-5 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 pt-2">
           {availableBrands.length > 0 ? (
             availableBrands.map((brand) => (
-              <div key={brand} className="flex items-center gap-3 group cursor-pointer hover:translate-x-1 transition-transform duration-300">
+              <div key={brand} className="flex items-center gap-4 group cursor-pointer hover:translate-x-1 transition-transform duration-300">
                 <Checkbox
                   id={`brand-${brand}`}
                   checked={filters.brands.includes(brand) || false}
                   onCheckedChange={(checked) =>
                     handleBrandChange(brand, checked as boolean)
                   }
-                  className="border-white/20 data-[state=checked]:bg-gold data-[state=checked]:border-gold h-4 w-4 transition-all"
+                  className="border-white/20 data-[state=checked]:bg-gold data-[state=checked]:border-gold h-5 w-5 transition-all"
                 />
                 <Label
                   htmlFor={`brand-${brand}`}
-                  className="text-[11px] font-bold text-white/70 group-hover:text-gold cursor-pointer transition-colors leading-none tracking-wide whitespace-nowrap"
+                  className="text-xs font-bold text-white/70 group-hover:text-gold cursor-pointer transition-colors leading-none tracking-wide whitespace-nowrap"
                   title={brand}
                 >
                   {brand}
                 </Label>
                 <div className="flex-1" />
-                <span className="text-[9px] font-black font-mono text-white/20 group-hover:text-gold/60 transition-colors">
+                <span className="text-[10px] font-black font-mono text-white/20 group-hover:text-gold/60 transition-colors">
                   ({productCounts.brands[brand] || 0})
                 </span>
               </div>
@@ -214,6 +214,8 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
           )}
         </CollapsibleContent>
       </Collapsible>
+
+      <div className="w-full h-px bg-gradient-to-r from-gold/0 via-gold/20 to-gold/0 my-2" />
 
       {/* Clear Filters */}
       <Button

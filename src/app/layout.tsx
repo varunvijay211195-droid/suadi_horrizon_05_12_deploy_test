@@ -77,6 +77,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -88,55 +90,57 @@ export default async function RootLayout({
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://saudihorizon.com';
 
   return (
-    <html lang={lang} dir={dir} suppressHydrationWarning>
-      <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "LocalBusiness",
-              "name": lang === 'ar' ? "سعودي هورايزون" : "Saudi Horizon",
-              "image": `${baseUrl}/logo.png`,
-              "@id": baseUrl,
-              "url": baseUrl,
-              "telephone": "+966570196677",
-              "address": {
-                "@type": "PostalAddress",
-                "streetAddress": "Building 8550, Omar bin Al-Khattab Street, Dallah Industrial District",
-                "addressLocality": "Dammam",
-                "addressRegion": "Eastern Province",
-                "postalCode": "34225",
-                "addressCountry": "SA"
-              },
-              "geo": {
-                "@type": "GeoCoordinates",
-                "latitude": 26.4207,
-                "longitude": 50.0888
-              },
-              "openingHoursSpecification": {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": [
-                  "Monday",
-                  "Tuesday",
-                  "Wednesday",
-                  "Thursday",
-                  "Sunday"
-                ],
-                "opens": "08:00",
-                "closes": "20:00"
-              }
-            })
-          }}
-        />
-      </head>
-      <body
-        className={`${inter.variable} ${spaceGrotesk.variable} ${cairo.variable} antialiased bg-navy font-sans`}
-      >
-        <Providers>
-          <Layout>{children}</Layout>
-        </Providers>
-      </body>
-    </html>
+    <>
+      <html lang={lang} dir={dir} suppressHydrationWarning>
+        <head>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "LocalBusiness",
+                "name": lang === 'ar' ? "سعودي هورايزون" : "Saudi Horizon",
+                "image": `${baseUrl}/logo.png`,
+                "@id": baseUrl,
+                "url": baseUrl,
+                "telephone": "+966570196677",
+                "address": {
+                  "@type": "PostalAddress",
+                  "streetAddress": "Building 8550, Omar bin Al-Khattab Street, Dallah Industrial District",
+                  "addressLocality": "Dammam",
+                  "addressRegion": "Eastern Province",
+                  "postalCode": "34225",
+                  "addressCountry": "SA"
+                },
+                "geo": {
+                  "@type": "GeoCoordinates",
+                  "latitude": 26.4207,
+                  "longitude": 50.0888
+                },
+                "openingHoursSpecification": {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": [
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Sunday"
+                  ],
+                  "opens": "08:00",
+                  "closes": "20:00"
+                }
+              })
+            }}
+          />
+        </head>
+        <body
+          className={`${inter.variable} ${spaceGrotesk.variable} ${cairo.variable} antialiased bg-navy font-sans`}
+        >
+          <Providers>
+            <Layout>{children}</Layout>
+          </Providers>
+        </body>
+      </html>
+    </>
   );
 }

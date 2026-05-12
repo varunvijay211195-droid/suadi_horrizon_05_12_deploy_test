@@ -9,6 +9,7 @@ import { Product } from '@/api/products';
 import { useComparison } from '@/contexts/ComparisonContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { getSafeImageUrl } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface ProductCardProps {
   product: Product;
@@ -25,6 +26,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   index = 0,
 }) => {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
 
   // Comparison functionality
@@ -162,7 +164,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               onClick={() => onAddToCart(product)}
             >
               <ShoppingCart className="w-3.5 h-3.5 mr-2" />
-              ADD TO CART
+              {t('product_detail.add_to_cart')}
             </Button>
             <div className="flex gap-2">
               <Button

@@ -470,16 +470,18 @@ export default function AdminQuotesPage() {
                                             });
                                             if (!res.ok) throw new Error('Failed to create invoice');
                                             const data = await res.json();
-                                            toast.success(`Invoice ${data.invoice.invoiceNumber} created!`);
+                                            const invoiceId = data.invoice.id || data.invoice._id;
+                                            const invoiceNumber = data.invoice.invoice_number || data.invoice.invoiceNumber;
+                                            toast.success(`Invoice ${invoiceNumber} created!`);
 
                                             // Copy link to clipboard
-                                            const link = `${window.location.origin}/invoice/${data.invoice._id}`;
+                                            const link = `${window.location.origin}/invoice/${invoiceId}`;
                                             navigator.clipboard.writeText(link);
                                             toast.info('Payment link copied to clipboard');
 
                                             // Download the PDF (Database-driven professional layout)
                                             try {
-                                                window.open(`/api/admin/invoices/${data.invoice._id}/pdf?token=${token}`, '_blank');
+                                                window.open(`/api/admin/invoices/${invoiceId}/pdf?token=${token}`, '_blank');
                                             } catch (pdfErr) {
                                                 console.error('Initial PDF Gen Error:', pdfErr);
                                             }

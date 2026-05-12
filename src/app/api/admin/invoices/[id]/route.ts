@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { verifyAuth } from '@/lib/auth/middleware';
+import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET — Single invoice
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const auth = await verifyAuth(req);
-        if (!auth || auth.role !== 'admin') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const authResult = await verifyAdminToken(req);
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status });
         }
 
         const { id } = await params;
         const supabase = createClient();
         const { data: invoice, error } = await supabase
             .from('invoices')
-            .select('*')
+            .select('*, invoice_items(*)')
             .eq('id', id)
             .single();
 
@@ -25,7 +25,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             throw error;
         }
 
-        return NextResponse.json({ invoice });
+        const formattedInvoice = {
+            ...invoice,
+            invoiceNumber: invoice.invoice_number,
+            sourceType: invoice.source_type,
+            sourceId: invoice.source_id,
+            vatRate: invoice.vat_rate,
+            vatAmount: invoice.vat_amount,
+            totalAmount: invoice.total_amount,
+            dueDate: invoice.due_date,
+            paidAt: invoice.paid_at,
+            createdBy: invoice.created_by,
+            sentAt: invoice.sent_at,
+            createdAt: invoice.created_at,
+            updatedAt: invoice.updated_at,
+            items: (invoice.invoice_items || []).map((item: any) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unit_price,
+                total: item.total
+            }))
+        };
+
+        return NextResponse.json({ invoice: formattedInvoice });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -34,9 +56,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 // PATCH — Update invoice status or fields
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const auth = await verifyAuth(req);
-        if (!auth || auth.role !== 'admin') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const authResult = await verifyAdminToken(req);
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status });
         }
 
         const { id } = await params;
@@ -73,9 +95,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 // DELETE — Remove invoice
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const auth = await verifyAuth(req);
-        if (!auth || auth.role !== 'admin') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const authResult = await verifyAdminToken(req);
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status });
         }
 
         const { id } = await params;

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { verifyAuth } from '@/lib/auth/middleware';
+import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // GET — List all invoices (with optional filters)
 export async function GET(req: NextRequest) {
     try {
-        const auth = await verifyAuth(req);
-        if (!auth || auth.role !== 'admin') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const authResult = await verifyAdminToken(req);
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status });
         }
 
         const supabase = createClient();
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         const { data: invoices, error: invoicesError } = await applyFilters(
             supabase
                 .from('invoices')
-                .select('*')
+                .select('*, invoice_items(*)')
                 .order('created_at', { ascending: false })
                 .range(offset, offset + limit - 1)
         );
@@ -58,8 +58,30 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
         }
 
+        const formattedInvoices = (invoices || []).map(inv => ({
+            ...inv,
+            invoiceNumber: inv.invoice_number,
+            sourceType: inv.source_type,
+            sourceId: inv.source_id,
+            vatRate: inv.vat_rate,
+            vatAmount: inv.vat_amount,
+            totalAmount: inv.total_amount,
+            dueDate: inv.due_date,
+            paidAt: inv.paid_at,
+            createdBy: inv.created_by,
+            sentAt: inv.sent_at,
+            createdAt: inv.created_at,
+            updatedAt: inv.updated_at,
+            items: (inv.invoice_items || []).map((item: any) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unit_price,
+                total: item.total
+            }))
+        }));
+
         return NextResponse.json({
-            invoices: invoices || [],
+            invoices: formattedInvoices,
             total: count || 0,
             page,
             totalPages: Math.ceil((count || 0) / limit),
@@ -73,9 +95,9 @@ export async function GET(req: NextRequest) {
 // POST — Create a new invoice from an order or quote
 export async function POST(req: NextRequest) {
     try {
-        const auth = await verifyAuth(req);
-        if (!auth || auth.role !== 'admin') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const authResult = await verifyAdminToken(req);
+        if (authResult.error) {
+            return NextResponse.json({ error: authResult.error }, { status: authResult.status });
         }
 
         const supabase = createClient();
@@ -195,7 +217,6 @@ export async function POST(req: NextRequest) {
                 source_type: sourceType,
                 source_id: sourceId,
                 customer,
-                items: invoiceItems,
                 subtotal,
                 vat_rate: vatRate,
                 vat_amount: vatAmount,
@@ -204,7 +225,7 @@ export async function POST(req: NextRequest) {
                 status: 'draft',
                 notes,
                 due_date: dueDate ? new Date(dueDate).toISOString() : null,
-                created_by: auth.sub,
+                created_by: authResult.user?.id,
             })
             .select()
             .single();
@@ -214,9 +235,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 });
         }
 
+        if (invoiceItems && invoiceItems.length > 0) {
+            const dbItems = invoiceItems.map((item: any) => ({
+                invoice_id: invoice.id,
+                description: item.description,
+                quantity: item.quantity,
+                unit_price: item.unitPrice,
+                total: item.total
+            }));
+            const { error: itemsError } = await supabase.from('invoice_items').insert(dbItems);
+            if (itemsError) {
+                console.error('Error inserting invoice items:', itemsError);
+            }
+        }
+
+        invoice.items = invoiceItems;
+
         return NextResponse.json({ invoice }, { status: 201 });
     } catch (error: any) {
         console.error('Error creating invoice:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        import('fs').then(fs => fs.writeFileSync('c:\\Users\\vv\\Desktop\\saudi_horizon_fresh\\scratch\\invoice_error.txt', error.stack || error.message || String(error)));
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

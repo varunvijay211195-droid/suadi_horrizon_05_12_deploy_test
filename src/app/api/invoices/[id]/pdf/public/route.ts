@@ -14,13 +14,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         // Find invoice - no auth required for public view if they have the ID
         const { data: invoice, error } = await supabase
             .from('invoices')
-            .select('*')
+            .select('*, invoice_items(*)')
             .eq('id', id)
             .single();
 
         if (error || !invoice) {
             return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
         }
+
+        const items = (invoice.invoice_items || []).map((item: any) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            total: item.total
+        }));
 
         const pdfBuffer = await generateInvoicePDFServer({
             invoiceNumber: invoice.invoice_number,
@@ -37,7 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 })
                 : undefined,
             customer: invoice.customer,
-            items: invoice.items,
+            items: items,
             subtotal: invoice.subtotal,
             vatRate: invoice.vat_rate,
             vatAmount: invoice.vat_amount,

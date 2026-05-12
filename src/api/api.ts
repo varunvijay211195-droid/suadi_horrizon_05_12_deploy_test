@@ -23,7 +23,6 @@ const localApi = axios.create({
   },
 });
 
-let accessToken: string | null = null;
 
 // Check if the URL is for the refresh token endpoint to avoid infinite loops
 const isRefreshTokenEndpoint = (url: string): boolean => {
@@ -64,13 +63,10 @@ const redirectToLogin = (): void => {
 const setupInterceptors = (apiInstance: AxiosInstance) => {
   apiInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-      if (!accessToken) {
-        accessToken = getLocalStorageItem('accessToken');
+      const token = getLocalStorageItem('accessToken');
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
-      if (accessToken && config.headers) {
-        config.headers.Authorization = `Bearer ${accessToken}`;
-      }
-
       return config;
     },
     (error: AxiosError): Promise<AxiosError> => Promise.reject(error)
@@ -90,7 +86,9 @@ const setupInterceptors = (apiInstance: AxiosInstance) => {
         try {
           const refreshToken = getLocalStorageItem('refreshToken');
           if (!refreshToken) {
-            throw new Error('No refresh token available');
+            // If no refresh token, we can't do anything, so just reject and redirect
+            redirectToLogin();
+            return Promise.reject(error);
           }
 
           const response = await localApi.post(`/api/auth/refresh`, {
@@ -103,23 +101,19 @@ const setupInterceptors = (apiInstance: AxiosInstance) => {
 
             setLocalStorageItem('accessToken', newAccessToken);
             setLocalStorageItem('refreshToken', newRefreshToken);
-            accessToken = newAccessToken;
 
+            // Update original request headers and retry
             if (originalRequest.headers) {
               originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             }
+            
+            return localApi(originalRequest);
           } else {
             throw new Error('Invalid response from refresh token endpoint');
           }
-
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          }
-          return localApi;
         } catch (err) {
           removeLocalStorageItem('refreshToken');
           removeLocalStorageItem('accessToken');
-          accessToken = null;
           redirectToLogin();
           return Promise.reject(err);
         }

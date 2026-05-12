@@ -12,6 +12,8 @@ import { LanguageSwitcher } from "./LanguageSwitcher"
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetTitle,
   SheetTrigger,
 } from "./ui/sheet"
 import { Separator } from "./ui/separator"
@@ -209,8 +211,11 @@ export function Header() {
                 <SheetContent
                   side="right"
                   className="w-64 bg-charcoal border-white/10"
-                  aria-label="Navigation menu"
                 >
+                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Access home, spare parts, brands, and contact information.
+                  </SheetDescription>
                   <nav className="flex flex-col gap-2 mt-8" aria-label="Mobile navigation">
                     {navItems.map((item, index) => (
                       <Button

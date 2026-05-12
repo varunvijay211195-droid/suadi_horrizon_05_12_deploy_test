@@ -120,7 +120,13 @@ function AdminProductsPageInner() {
 
             if (brandsRes.ok) {
                 const data = await brandsRes.json();
-                setBrands(data.brands || []);
+                // brands API returns a string[], map to Entity shape
+                const rawBrands: unknown[] = data.brands || [];
+                if (rawBrands.length > 0 && typeof rawBrands[0] === 'string') {
+                    setBrands((rawBrands as string[]).map(b => ({ _id: b, name: b })));
+                } else {
+                    setBrands(rawBrands as Entity[]);
+                }
             }
 
             if (catsRes.ok) {
@@ -880,7 +886,7 @@ function AdminProductsPageInner() {
                                                 >
                                                     <option value="" className="bg-navy">Select Brand</option>
                                                     {brands.map((brand, idx) => (
-                                                        <option key={`brand-${brand._id || idx}`} value={brand._id} className="bg-navy">
+                                                        <option key={`brand-${brand._id || idx}`} value={brand.name} className="bg-navy">
                                                             {brand.name}
                                                         </option>
                                                     ))}
@@ -895,7 +901,7 @@ function AdminProductsPageInner() {
                                                 >
                                                     <option value="" className="bg-navy">Select Category</option>
                                                     {categories.map((cat, idx) => (
-                                                        <option key={`cat-${cat._id || idx}`} value={cat._id} className="bg-navy">
+                                                        <option key={`cat-${cat._id || idx}`} value={cat.name} className="bg-navy">
                                                             {cat.name}
                                                         </option>
                                                     ))}

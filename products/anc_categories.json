@@ -1,0 +1,416 @@
+[
+  {
+    "id": 1,
+    "name_tr": "AĞIR DÖKÜM GRUBU",
+    "name_en": "Heavy Casting Group",
+    "category_url": "https://www.anacmakina.com/urunler/A%C4%9EIR-D%C3%96K%C3%9CM-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559095/k-agir-dokum-grubu-16123362377574.jpg",
+    "local_image": "category_images/01_air_dkm_grubu.jpg",
+    "image_filename": "01_air_dkm_grubu.jpg"
+  },
+  {
+    "id": 2,
+    "name_tr": "MOTOR PARÇALARI",
+    "name_en": "Engine Parts",
+    "category_url": "https://www.anacmakina.com/urunler/MOTOR-PAR%C3%87ALARI.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1517227120/k-motor-parcalari-16044066896047.jpg",
+    "local_image": "category_images/02_motor_paralari.jpg",
+    "image_filename": "02_motor_paralari.jpg"
+  },
+  {
+    "id": 3,
+    "name_tr": "RADYATÖR & YAĞ SOĞUTUCU GRUBU",
+    "name_en": "Radiator & Oil Cooler Group",
+    "category_url": "https://www.anacmakina.com/urunler/RADYAT%C3%96R-YA%C4%9E-SO%C4%9EUTUCU-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1611567024/k-radyator-&-yag-sogutucu-grubu-16115690413478.jpg",
+    "local_image": "category_images/03_radyatr_and_ya_soutucu_grubu.jpg",
+    "image_filename": "03_radyatr_and_ya_soutucu_grubu.jpg"
+  },
+  {
+    "id": 4,
+    "name_tr": "CATERPİLLAR GRUBU",
+    "name_en": "Caterpillar Group",
+    "category_url": "https://www.anacmakina.com/urunler/CATERP%C4%B0LLAR-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1613554767/k-caterpillar-grubu-16139873764449.jpg",
+    "local_image": "category_images/04_caterpllar_grubu.jpg",
+    "image_filename": "04_caterpllar_grubu.jpg"
+  },
+  {
+    "id": 5,
+    "name_tr": "ZF HİDROMEK GRUBU",
+    "name_en": "ZF Hidromek Group",
+    "category_url": "https://www.anacmakina.com/urunler/ZF-H%C4%B0DROMEK-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1613456611/k-zf-hidromek-grubu-16139874231742.jpg",
+    "local_image": "category_images/05_zf_hdromek_grubu.jpg",
+    "image_filename": "05_zf_hdromek_grubu.jpg"
+  },
+  {
+    "id": 6,
+    "name_tr": "CARRARO PARÇA GRUBU",
+    "name_en": "Carraro Parts Group",
+    "category_url": "https://www.anacmakina.com/urunler/CARRARO-PAR%C3%87A-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1551943525/k-carraro-parca-grubu-16139875959756.jpg",
+    "local_image": "category_images/06_carraro_para_grubu.jpg",
+    "image_filename": "06_carraro_para_grubu.jpg"
+  },
+  {
+    "id": 7,
+    "name_tr": "AKS GRUBU",
+    "name_en": "Axle Group",
+    "category_url": "https://www.anacmakina.com/urunler/AKS-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559276/k-aks-grubu-16617562029408.png",
+    "local_image": "category_images/07_aks_grubu.png",
+    "image_filename": "07_aks_grubu.png"
+  },
+  {
+    "id": 8,
+    "name_tr": "BALATA GRUBU",
+    "name_en": "Brake Pad Group",
+    "category_url": "https://www.anacmakina.com/urunler/BALATA-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559287/k-balata-grubu-16044053596451.jpg",
+    "local_image": "category_images/08_balata_grubu.jpg",
+    "image_filename": "08_balata_grubu.jpg"
+  },
+  {
+    "id": 9,
+    "name_tr": "CONTA GRUPLARI",
+    "name_en": "Gasket Groups",
+    "category_url": "https://www.anacmakina.com/urunler/CONTA-GRUPLARI.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559393/k-em8338.jpg",
+    "local_image": "category_images/09_conta_gruplari.jpg",
+    "image_filename": "09_conta_gruplari.jpg"
+  },
+  {
+    "id": 10,
+    "name_tr": "ÇELİK BURÇ GRUBU",
+    "name_en": "Steel Bushing Group",
+    "category_url": "https://www.anacmakina.com/urunler/%C3%87EL%C4%B0K-BUR%C3%87-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559471/k-asdasd.jpg",
+    "local_image": "category_images/10_elk_bur_grubu.jpg",
+    "image_filename": "10_elk_bur_grubu.jpg"
+  },
+  {
+    "id": 11,
+    "name_tr": "BİLYA GRUBU",
+    "name_en": "Bearing Group",
+    "category_url": "https://www.anacmakina.com/urunler/B%C4%B0LYA-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559313/k-jcb-bearings-500x500.jpg",
+    "local_image": "category_images/11_blya_grubu.jpg",
+    "image_filename": "11_blya_grubu.jpg"
+  },
+  {
+    "id": 12,
+    "name_tr": "DİŞLİ GRUBU",
+    "name_en": "Gear Group",
+    "category_url": "https://www.anacmakina.com/urunler/D%C4%B0%C5%9EL%C4%B0-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559492/k-images.jpg",
+    "local_image": "category_images/12_dl_grubu.jpg",
+    "image_filename": "12_dl_grubu.jpg"
+  },
+  {
+    "id": 13,
+    "name_tr": "ELEKTRİK GRUBU",
+    "name_en": "Electrical Group",
+    "category_url": "https://www.anacmakina.com/urunler/ELEKTR%C4%B0K-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559698/k-elektrik-grubu-16126185623783.jpg",
+    "local_image": "category_images/13_elektrk_grubu.jpg",
+    "image_filename": "13_elektrk_grubu.jpg"
+  },
+  {
+    "id": 14,
+    "name_tr": "AMORTİSÖR GRUBU",
+    "name_en": "Shock Absorber Group",
+    "category_url": "https://www.anacmakina.com/urunler/AMORT%C4%B0S%C3%96R-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441789374/k-gazovyie-pruzhinyi-kategoriya-1-_7.jpg",
+    "local_image": "category_images/14_amortsr_grubu.jpg",
+    "image_filename": "14_amortsr_grubu.jpg"
+  },
+  {
+    "id": 15,
+    "name_tr": "FİLTRE GRUBU",
+    "name_en": "Filter Group",
+    "category_url": "https://www.anacmakina.com/urunler/F%C4%B0LTRE-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559707/k-filtre-grubu-160440555934.jpg",
+    "local_image": "category_images/15_fltre_grubu.jpg",
+    "image_filename": "15_fltre_grubu.jpg"
+  },
+  {
+    "id": 16,
+    "name_tr": "KAYIŞ GRUBU",
+    "name_en": "Belt Group",
+    "category_url": "https://www.anacmakina.com/urunler/KAYI%C5%9E-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559824/k-17.jpg",
+    "local_image": "category_images/16_kayi_grubu.jpg",
+    "image_filename": "16_kayi_grubu.jpg"
+  },
+  {
+    "id": 17,
+    "name_tr": "TURBOLAR",
+    "name_en": "Turbochargers",
+    "category_url": "https://www.anacmakina.com/urunler/TURBOLAR.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441725138/k-k-24.jpg",
+    "local_image": "category_images/17_turbolar.jpg",
+    "image_filename": "17_turbolar.jpg"
+  },
+  {
+    "id": 18,
+    "name_tr": "BOŞLUK PULLARI GRUBU",
+    "name_en": "Shim Washer Group",
+    "category_url": "https://www.anacmakina.com/urunler/BO%C5%9ELUK-PULLARI-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559330/k-30_nitronic_washer.jpg",
+    "local_image": "category_images/18_boluk_pullari_grubu.jpg",
+    "image_filename": "18_boluk_pullari_grubu.jpg"
+  },
+  {
+    "id": 19,
+    "name_tr": "KOL GRUPLARI",
+    "name_en": "Arm Groups",
+    "category_url": "https://www.anacmakina.com/urunler/KOL-GRUPLARI.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559836/k-kol-gruplari-16121651422592.jpg",
+    "local_image": "category_images/19_kol_gruplari.jpg",
+    "image_filename": "19_kol_gruplari.jpg"
+  },
+  {
+    "id": 20,
+    "name_tr": "DÜĞME GRUBU",
+    "name_en": "Button / Switch Group",
+    "category_url": "https://www.anacmakina.com/urunler/D%C3%9C%C4%9EME-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1573279451/k-jcb_701-60004.png",
+    "local_image": "category_images/20_dme_grubu.png",
+    "image_filename": "20_dme_grubu.png"
+  },
+  {
+    "id": 21,
+    "name_tr": "CAM GRUBU",
+    "name_en": "Glass Group",
+    "category_url": "https://www.anacmakina.com/urunler/CAM-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559354/k-cam-grubu-16139919245455.jpg",
+    "local_image": "category_images/21_cam_grubu.jpg",
+    "image_filename": "21_cam_grubu.jpg"
+  },
+  {
+    "id": 22,
+    "name_tr": "LAMBA GRUBU",
+    "name_en": "Lamp Group",
+    "category_url": "https://www.anacmakina.com/urunler/LAMBA-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559852/k-lambagrubu.png",
+    "local_image": "category_images/22_lamba_grubu.png",
+    "image_filename": "22_lamba_grubu.png"
+  },
+  {
+    "id": 23,
+    "name_tr": "MÜŞÜR GRUBU",
+    "name_en": "Sensor / Switch Group",
+    "category_url": "https://www.anacmakina.com/urunler/M%C3%9C%C5%9E%C3%9CR-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559869/k-musur-grubu-1613989143648.jpg",
+    "local_image": "category_images/23_mr_grubu.jpg",
+    "image_filename": "23_mr_grubu.jpg"
+  },
+  {
+    "id": 24,
+    "name_tr": "PİM GRUBU",
+    "name_en": "Pin Group",
+    "category_url": "https://www.anacmakina.com/urunler/P%C4%B0M-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559884/k-pins.png",
+    "local_image": "category_images/24_pm_grubu.png",
+    "image_filename": "24_pm_grubu.png"
+  },
+  {
+    "id": 25,
+    "name_tr": "DİĞER",
+    "name_en": "Other",
+    "category_url": "https://www.anacmakina.com/urunler/D%C4%B0%C4%9EER.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1603720541/k-diger-16043079937472.jpg",
+    "local_image": "category_images/25_der.jpg",
+    "image_filename": "25_der.jpg"
+  },
+  {
+    "id": 26,
+    "name_tr": "PİSTON GRUBU",
+    "name_en": "Piston Group",
+    "category_url": "https://www.anacmakina.com/urunler/P%C4%B0STON-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559900/k-piston-grubu-16119326209653.jpg",
+    "local_image": "category_images/26_pston_grubu.jpg",
+    "image_filename": "26_pston_grubu.jpg"
+  },
+  {
+    "id": 27,
+    "name_tr": "PİSTON KEÇELERİ",
+    "name_en": "Piston Seals",
+    "category_url": "https://www.anacmakina.com/urunler/P%C4%B0STON-KE%C3%87ELER%C4%B0.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441789400/k-k-27.jpg",
+    "local_image": "category_images/27_pston_keeler.jpg",
+    "image_filename": "27_pston_keeler.jpg"
+  },
+  {
+    "id": 28,
+    "name_tr": "ETİKETLER",
+    "name_en": "Labels / Stickers",
+    "category_url": "https://www.anacmakina.com/urunler/ET%C4%B0KETLER.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1603723746/k-etiketler-16044067679356.jpg",
+    "local_image": "category_images/28_etketler.jpg",
+    "image_filename": "28_etketler.jpg"
+  },
+  {
+    "id": 29,
+    "name_tr": "POMPA GRUPLARI",
+    "name_en": "Pump Groups",
+    "category_url": "https://www.anacmakina.com/urunler/POMPA-GRUPLARI.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559956/k-elementy-ukladu-hydraulicznego-1499172744.png",
+    "local_image": "category_images/29_pompa_gruplari.png",
+    "image_filename": "29_pompa_gruplari.png"
+  },
+  {
+    "id": 30,
+    "name_tr": "SARI BURÇ GRUBU",
+    "name_en": "Bronze Bushing Group",
+    "category_url": "https://www.anacmakina.com/urunler/SARI-BUR%C3%87-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432559991/k-bronze-products-500x500.jpg",
+    "local_image": "category_images/30_sari_bur_grubu.jpg",
+    "image_filename": "30_sari_bur_grubu.jpg"
+  },
+  {
+    "id": 31,
+    "name_tr": "SEKMAN GRUPLARI",
+    "name_en": "Piston Ring Groups",
+    "category_url": "https://www.anacmakina.com/urunler/SEKMAN-GRUPLARI.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1432560014/k-sekman-gruplari-16139906832906.jpg",
+    "local_image": "category_images/31_sekman_gruplari.jpg",
+    "image_filename": "31_sekman_gruplari.jpg"
+  },
+  {
+    "id": 32,
+    "name_tr": "CİVATA GRUBU",
+    "name_en": "Bolt Group",
+    "category_url": "https://www.anacmakina.com/urunler/C%C4%B0VATA-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715434/k-civata-grubu-16139936921496.jpg",
+    "local_image": "category_images/32_cvata_grubu.jpg",
+    "image_filename": "32_cvata_grubu.jpg"
+  },
+  {
+    "id": 33,
+    "name_tr": "PERVANE GRUBU",
+    "name_en": "Fan Blade Group",
+    "category_url": "https://www.anacmakina.com/urunler/PERVANE-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715457/k-jcb-radiator-fan-500x500.jpg",
+    "local_image": "category_images/33_pervane_grubu.jpg",
+    "image_filename": "33_pervane_grubu.jpg"
+  },
+  {
+    "id": 34,
+    "name_tr": "EGZOZ GRUBU",
+    "name_en": "Exhaust Group",
+    "category_url": "https://www.anacmakina.com/urunler/EGZOZ-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715468/k-egzoz-grubu-16139900667296.jpg",
+    "local_image": "category_images/34_egzoz_grubu.jpg",
+    "image_filename": "34_egzoz_grubu.jpg"
+  },
+  {
+    "id": 35,
+    "name_tr": "TAKOZ GRUBU",
+    "name_en": "Mount / Block Group",
+    "category_url": "https://www.anacmakina.com/urunler/TAKOZ-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715507/k-takoz-grubu-16139978861513.jpg",
+    "local_image": "category_images/35_takoz_grubu.jpg",
+    "image_filename": "35_takoz_grubu.jpg"
+  },
+  {
+    "id": 36,
+    "name_tr": "HORTUM GRUBU",
+    "name_en": "Hose Group",
+    "category_url": "https://www.anacmakina.com/urunler/HORTUM-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715520/k-hortum-grubu-16121630907360.jpg",
+    "local_image": "category_images/36_hortum_grubu.jpg",
+    "image_filename": "36_hortum_grubu.jpg"
+  },
+  {
+    "id": 37,
+    "name_tr": "ISTAVROZ GRUBU",
+    "name_en": "Universal Joint Group",
+    "category_url": "https://www.anacmakina.com/urunler/ISTAVROZ-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715549/k-k-20.jpg",
+    "local_image": "category_images/37_istavroz_grubu.jpg",
+    "image_filename": "37_istavroz_grubu.jpg"
+  },
+  {
+    "id": 38,
+    "name_tr": "YAĞ KEÇELERİ",
+    "name_en": "Oil Seals",
+    "category_url": "https://www.anacmakina.com/urunler/YA%C4%9E-KE%C3%87ELER%C4%B0.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715560/k-yag-keceleri-16139861913540.png",
+    "local_image": "category_images/38_ya_keeler.png",
+    "image_filename": "38_ya_keeler.png"
+  },
+  {
+    "id": 39,
+    "name_tr": "YARIKLI BURÇLAR",
+    "name_en": "Split Bushings",
+    "category_url": "https://www.anacmakina.com/urunler/YARIKLI-BUR%C3%87LAR.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715577/k-spring-bushes-250x250-250x250.jpg",
+    "local_image": "category_images/39_yarikli_burlar.jpg",
+    "image_filename": "39_yarikli_burlar.jpg"
+  },
+  {
+    "id": 40,
+    "name_tr": "PLASTİK GRUBU",
+    "name_en": "Plastic Group",
+    "category_url": "https://www.anacmakina.com/urunler/PLAST%C4%B0K-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715595/k-plastik-grubu-16123406769406.jpg",
+    "local_image": "category_images/40_plastk_grubu.jpg",
+    "image_filename": "40_plastk_grubu.jpg"
+  },
+  {
+    "id": 41,
+    "name_tr": "ŞAFT GRUBU",
+    "name_en": "Shaft Group",
+    "category_url": "https://www.anacmakina.com/urunler/%C5%9EAFT-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715611/k-saft-grubu-16139967805721.jpg",
+    "local_image": "category_images/41_aft_grubu.jpg",
+    "image_filename": "41_aft_grubu.jpg"
+  },
+  {
+    "id": 42,
+    "name_tr": "JANT GRUBU",
+    "name_en": "Rim / Wheel Group",
+    "category_url": "https://www.anacmakina.com/urunler/JANT-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715621/k-jant-grubu-16119338414674.jpg",
+    "local_image": "category_images/42_jant_grubu.jpg",
+    "image_filename": "42_jant_grubu.jpg"
+  },
+  {
+    "id": 43,
+    "name_tr": "KAPAK GRUBU",
+    "name_en": "Cover / Cap Group",
+    "category_url": "https://www.anacmakina.com/urunler/KAPAK-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441715644/k-kapak-grubu-16121225851144.jpg",
+    "local_image": "category_images/43_kapak_grubu.jpg",
+    "image_filename": "43_kapak_grubu.jpg"
+  },
+  {
+    "id": 44,
+    "name_tr": "TIRNAK GRUBU",
+    "name_en": "Bucket Tooth Group",
+    "category_url": "https://www.anacmakina.com/urunler/TIRNAK-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441720323/k-spare-part-bucket-tooth--1_big--17022318193456025500.jpg",
+    "local_image": "category_images/44_tirnak_grubu.jpg",
+    "image_filename": "44_tirnak_grubu.jpg"
+  },
+  {
+    "id": 45,
+    "name_tr": "KOVA & ATAŞMAN GRUBU",
+    "name_en": "Bucket & Attachment Group",
+    "category_url": "https://www.anacmakina.com/urunler/KOVA-ATA%C5%9EMAN-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441720371/k-kovalar.jpg",
+    "local_image": "category_images/45_kova_and_ataman_grubu.jpg",
+    "image_filename": "45_kova_and_ataman_grubu.jpg"
+  },
+  {
+    "id": 46,
+    "name_tr": "GAZ TELİ GRUBU",
+    "name_en": "Throttle Cable Group",
+    "category_url": "https://www.anacmakina.com/urunler/GAZ-TEL%C4%B0-GRUBU.html",
+    "source_image_url": "https://www.anacmakina.com/yuklenen/kategoriler/1441725016/k-gaz-teli-grubu-16121202487761.jpg",
+    "local_image": "category_images/46_gaz_tel_grubu.jpg",
+    "image_filename": "46_gaz_tel_grubu.jpg"
+  }
+]

@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateInvoicePDF } from '@/lib/invoices/generatePDF';
 import { sendEmail } from '@/lib/mail';
-import { verifyAuth } from '@/lib/auth/middleware';
+import { verifyAdminToken } from '@/lib/auth/adminAuth';
 
 // POST — Send invoice via email
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await verifyAuth(req);
-    if (!auth || auth.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await verifyAdminToken(req);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -19,30 +19,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const { data: invoice, error: fetchError } = await supabase
       .from('invoices')
-      .select('*')
+      .select('*, invoice_items(*)')
       .eq('id', id)
       .single();
 
     if (fetchError || !invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
 
+    const formattedInvoice = {
+      ...invoice,
+      items: (invoice.invoice_items || []).map((item: any) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unit_price,
+        total: item.total
+      }))
+    };
+
     // Generate PDF
     const pdfBuffer = await generateInvoicePDF({
-      invoiceNumber: invoice.invoice_number,
-      date: new Date(invoice.created_at).toLocaleDateString('en-SA', {
+      invoiceNumber: formattedInvoice.invoice_number,
+      date: new Date(formattedInvoice.created_at).toLocaleDateString('en-SA', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       }),
-      dueDate: invoice.due_date
-        ? new Date(invoice.due_date).toLocaleDateString('en-SA', {
+      dueDate: formattedInvoice.due_date
+        ? new Date(formattedInvoice.due_date).toLocaleDateString('en-SA', {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
         })
         : undefined,
-      customer: invoice.customer,
-      items: invoice.items,
-      subtotal: invoice.subtotal,
+      customer: formattedInvoice.customer,
+      items: formattedInvoice.items,
+      subtotal: formattedInvoice.subtotal,
       vatRate: invoice.vat_rate,
       vatAmount: invoice.vat_amount,
       totalAmount: invoice.total_amount,

@@ -116,7 +116,11 @@ export async function PATCH(request: NextRequest) {
         };
 
         if (quotedPrice !== undefined) updateData.quoted_price = quotedPrice;
-        if (validUntil !== undefined) updateData.valid_until = new Date(validUntil).toISOString();
+        if (validUntil) {
+            updateData.valid_until = new Date(validUntil).toISOString();
+        } else if (validUntil === '') {
+            updateData.valid_until = null;
+        }
 
         const { data: updatedQuote, error: updateError } = await supabase
             .from('quote_requests')

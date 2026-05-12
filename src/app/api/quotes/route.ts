@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { notifyQuoteRequest } from '@/lib/notifications/adminNotifications';
+import { sendQuoteConfirmationEmail } from '@/lib/notifications/userNotifications';
 import { verifyAccessToken } from '@/lib/auth/jwt';
 
 export async function POST(request: NextRequest) {
@@ -62,7 +63,11 @@ export async function POST(request: NextRequest) {
 
         // Trigger admin notification in background (non-blocking)
         notifyQuoteRequest(companyName, contactPerson, { email, phone, items })
-            .catch(err => console.error('Background notification failed:', err));
+            .catch(err => console.error('Background admin notification failed:', err));
+
+        // Trigger user confirmation email in background (non-blocking)
+        sendQuoteConfirmationEmail(email, contactPerson, quoteRequest.id, companyName)
+            .catch(err => console.error('Background user notification failed:', err));
 
         return NextResponse.json(
             { message: 'Quote request submitted successfully', id: quoteRequest.id },
