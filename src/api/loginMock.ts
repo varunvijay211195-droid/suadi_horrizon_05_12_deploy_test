@@ -22,6 +22,7 @@ export const getLoginMockData = (email: string): LoginMockResponse => {
   const now = new Date().toISOString();
 
   return {
+    id: 'mock_user_id_1',
     _id: 'mock_user_id_1',
     email: email, // Use the email passed from login function
     role: ROLES.USER,
