@@ -17,9 +17,9 @@ import { getCategories, Category } from '@/api/categories';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductTableRow } from '@/components/ProductTableRow';
 import { FilterSidebar, FilterState } from '@/components/FilterSidebar';
+import { RightSidebar } from '@/components/products/RightSidebar';
 import { QuickInquiryDialog } from '@/components/QuickInquiryDialog';
 import { ShimmerGrid } from '@/components/ui/shimmer';
-import { RightSidebar } from '@/components/products/RightSidebar';
 import { addToCart } from '@/api/cart';
 import { toast } from 'sonner';
 import { getSafeImageUrl } from '@/lib/utils';
@@ -301,8 +301,32 @@ export default function ProductsPageClient() {
 
     const processedProducts = useMemo(() => {
         let result = [...products];
+
+        // Search filter (client-side backup)
+        if (filters.search) {
+            const query = filters.search.toLowerCase();
+            result = result.filter(p => 
+                p.name.toLowerCase().includes(query) || 
+                p.sku.toLowerCase().includes(query) ||
+                p.brand.toLowerCase().includes(query)
+            );
+        }
+
+        // Category filter
+        if (filters.categories.length > 0) {
+            result = result.filter(p => filters.categories.includes(p.category));
+        }
+
+        // Brand filter
+        if (filters.brands.length > 0) {
+            result = result.filter(p => filters.brands.includes(p.brand));
+        }
+
+        // Price range filter
+        result = result.filter(p => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]);
+
         return result;
-    }, [products]);
+    }, [products, filters]);
 
     const paginatedProducts = useMemo(() => {
         return processedProducts;
@@ -382,6 +406,8 @@ export default function ProductsPageClient() {
             categories: [],
             priceRange: [0, 5000],
             search: '',
+            availability: 'all',
+            compatibleOnly: false,
         });
         setSearchInput('');
         setMobileFilterOpen(false);
@@ -586,36 +612,36 @@ export default function ProductsPageClient() {
                         </Sheet>
                     </div>
 
-                    {/* Desktop Sidebar */}
+                    {/* Left Sidebar - Polished Version */}
                     <aside className="hidden lg:block w-[320px] flex-shrink-0">
-                        <div className="sticky top-32">
-                            <div className="flex flex-col p-6 lg:p-8 rounded-2xl bg-gold/5 border border-gold/10">
-                                <h3 className="text-base font-bold text-gold mb-6 flex items-center gap-3">
-                                    <SlidersHorizontal className="w-5 h-5" /> Filter Parts
-                                </h3>
-                                <h4 className="text-sm font-bold text-white mb-2">Technical Support</h4>
-                                <p className="text-xs text-white/40 mb-5 leading-relaxed">
-                                    Need help matching OEM specifications?
-                                </p>
-                                <a
-                                    href="https://wa.me/966570196677"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex w-full justify-center items-center gap-2 text-[9px] font-black tracking-[0.2em] text-navy bg-gold hover:bg-white transition-colors px-4 py-3 rounded-xl uppercase relative z-10"
-                                >
-                                    Chat with an Engineer
-                                </a>
-                            </div>
-
-                            {/* Footer */}
-                            <div className="mt-auto pt-6 flex-shrink-0">
-                                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 opacity-60">
-                                    <div className="flex justify-between items-center font-mono text-[9px] tracking-[0.3em] text-white">
-                                        <span>SEC: 01-FLTR</span>
-                                        <span>VER: 2.0.4</span>
+                        <div className="sticky top-32 space-y-10">
+                            {/* Filter Parts Card */}
+                            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 relative group overflow-hidden">
+                                <div className="absolute -right-6 -top-6 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
+                                    <SlidersHorizontal className="w-40 h-40 text-white rotate-12" />
+                                </div>
+                                
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                                            <SlidersHorizontal className="w-5 h-5 text-gold" />
+                                        </div>
+                                        <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] font-mono">
+                                            Control Panel
+                                        </span>
                                     </div>
+
+                                    <h3 className="text-sm font-black text-white mb-6 tracking-tight uppercase">Filter Parts</h3>
+                                    
+                                    <FilterSidebar 
+                                        filters={filters} 
+                                        onFilterChange={setFilters} 
+                                    />
                                 </div>
                             </div>
+
+                            {/* Integrated Right Sidebar Components */}
+                            <RightSidebar />
                         </div>
                     </aside>
 
