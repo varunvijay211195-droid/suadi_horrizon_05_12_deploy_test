@@ -481,6 +481,9 @@ export default function AdminInvoicesPage() {
                             <Receipt className="w-5 h-5 text-gold" />
                             {selectedInvoice?.invoiceNumber}
                         </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Invoice details and management options for {selectedInvoice?.invoiceNumber}.
+                        </DialogDescription>
                     </DialogHeader>
 
                     {selectedInvoice && (
