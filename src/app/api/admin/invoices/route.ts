@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
         }
 
-        const formattedInvoices = (invoices || []).map(inv => ({
+        const formattedInvoices = (invoices || []).map((inv: any) => ({
             ...inv,
             invoiceNumber: inv.invoice_number,
             sourceType: inv.source_type,

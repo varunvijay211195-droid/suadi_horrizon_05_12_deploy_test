@@ -406,8 +406,6 @@ export default function ProductsPageClient() {
             categories: [],
             priceRange: [0, 5000],
             search: '',
-            availability: 'all',
-            compatibleOnly: false,
         });
         setSearchInput('');
         setMobileFilterOpen(false);
@@ -607,7 +605,7 @@ export default function ProductsPageClient() {
                             <SheetContent side="left" className="w-[85vw] bg-navy border-white/5 text-white">
                                 <SheetTitle className="sr-only">Product Filters</SheetTitle>
                                 <SheetDescription className="sr-only">Filter products by category, brand, and more.</SheetDescription>
-                                <FilterSidebar filters={filters} onFilterChange={setFilters} availableCategories={allCategories.map(c => c.name)} />
+                                <FilterSidebar filters={filters} onFilterChange={setFilters} />
                             </SheetContent>
                         </Sheet>
                     </div>

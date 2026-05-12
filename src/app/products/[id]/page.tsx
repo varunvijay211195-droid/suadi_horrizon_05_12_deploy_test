@@ -70,14 +70,9 @@ const turkishTechnicalTerms: Record<string, string> = {
     'KAYIS': 'BELT',
     'EMIS': 'INTAKE',
     'LASTIGI': 'RUBBER',
-    'HORTUMU': 'HOSE',
-    'CONTASI': 'GASKET',
     'MUSURU': 'SENSOR',
     'CIVATASI': 'BOLT',
-    'SOMUNU': 'NUT',
-    'RADYATOR': 'RADIATOR',
     'UST': 'UPPER',
-    'ALT': 'LOWER',
     'BOLMELI': 'SECTION'
 };
 

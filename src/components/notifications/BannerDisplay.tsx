@@ -32,7 +32,7 @@ export default function BannerDisplay() {
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      const token = user?.token || null;
+      const token = (user as any)?.token || null;
       const response = await fetch('/api/notifications/banners', {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
